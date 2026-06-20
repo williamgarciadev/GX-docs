@@ -41,16 +41,16 @@ hay que construir nada).
 4. Clona el repo (en la carpeta donde guardes tus proyectos, p. ej. tu usuario):
    ```powershell
    cd %USERPROFILE%
-   git clone -b claude/claude-md-docs-h2p9l0 https://github.com/williamgarciadev/GX-docs.git
+   git clone https://github.com/williamgarciadev/GX-docs.git
    cd GX-docs
    ```
-   > Cuando estos cambios estén en `main`, basta con
-   > `git clone https://github.com/williamgarciadev/GX-docs.git` (sin `-b`).
+   > No necesitas indicar la rama: el repositorio usa la rama de trabajo como
+   > **predeterminada**, así que `git clone` ya descarga todo y te sitúa en ella.
 
 ### macOS / Linux
 
 ```bash
-git clone -b claude/claude-md-docs-h2p9l0 https://github.com/williamgarciadev/GX-docs.git
+git clone https://github.com/williamgarciadev/GX-docs.git
 cd GX-docs
 ```
 
