@@ -1,0 +1,20 @@
+// Subrutina: validar formato de email
+// API verificada en el corpus GeneXus 18:
+//   IsMatch (RegEx method) -> https://wiki.genexus.com/commwiki/wiki?4606
+//   Scope: Character, LongVarChar, VarChar
+//
+// Variables esperadas (globales del objeto, las subrutinas no reciben parametros):
+//   &Email      VarChar  - email a validar
+//   &EmailOk    Boolean  - resultado
+//   &Pattern    VarChar  - patron de la expresion regular
+
+Sub 'ValidarEmail'
+    // patron de email valido (tal cual lo documenta el articulo 4606)
+    &Pattern = "\w+([-+.']\w+)*@\w+([-.]\w+)*\.\w+([-.]\w+)*"
+
+    if &Email.IsMatch(&Pattern)
+        &EmailOk = True
+    else
+        &EmailOk = False
+    endif
+EndSub

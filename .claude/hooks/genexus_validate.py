@@ -26,6 +26,19 @@ gx_signal_re = re.compile("|".join(GX_SIGNALS), re.IGNORECASE)
 func_call_re = re.compile(r"(?<![.\w])([A-Za-z][A-Za-z0-9_]*)\s*\(")
 meth_call_re = re.compile(r"\.([A-Za-z][A-Za-z0-9_]*)\s*\(")
 
+# Comentarios GeneXus: bloque /* ... */ y linea // ... . Se eliminan ANTES de
+# buscar llamadas para no marcar prosa de comentarios (p. ej. "esperadas (...")
+# como funciones. El "//" de linea exige no ir precedido de ":" para no romper
+# URLs dentro de literales de cadena ("https://...").
+block_comment_re = re.compile(r"/\*.*?\*/", re.DOTALL)
+line_comment_re = re.compile(r"(?<!:)//[^\n]*")
+
+
+def strip_comments(text):
+    text = block_comment_re.sub(" ", text)
+    text = line_comment_re.sub(" ", text)
+    return text
+
 # Palabras clave / comandos del lenguaje que pueden ir seguidos de "(" y NO son
 # funciones del catalogo. No deben marcarse como sospechosas.
 KEYWORDS = {
@@ -83,6 +96,9 @@ def main():
         return
     if not gx_signal_re.search(content):
         return
+
+    # descartar comentarios: su prosa no es codigo y genera falsos positivos
+    content = strip_comments(content)
 
     base = project_dir()
     alln, funcs, meths = load_names(os.path.join(base, "corpus", "api.tsv"))
