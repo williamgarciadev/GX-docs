@@ -135,9 +135,12 @@ def main():
         return
 
     base = project_dir()
-    rows = load_index(os.path.join(base, "corpus", "index.tsv"))
-    api = load_api(os.path.join(base, "corpus", "api.tsv"))
-    props = load_props(os.path.join(base, "corpus", "properties.tsv"))
+    corpus = lambda *p: os.path.join(base, "corpus", *p)
+    rows = load_index(corpus("index.tsv"))
+    api = load_api(corpus("api.tsv"))
+    props = load_props(corpus("properties.tsv"))
+    events = load_props(corpus("events.tsv"))
+    datatypes = load_props(corpus("datatypes.tsv"))
     if not rows and not api:
         return
 
@@ -186,23 +189,27 @@ def main():
                 rel_api.append((name, kind, url))
     rel_api = rel_api[:12]
 
-    # propiedades relevantes: el nombre es multipalabra. Se puntua con
-    # frecuencia inversa para que un token-comodin como "attribute" (que
-    # matchea cientos de propiedades) pese mucho menos que uno especifico
-    # como "length", y la propiedad realmente pertinente quede arriba.
-    rel_props = []
-    if qtokens:
-        prop_toks = [(name, url, set(tokens(name))) for name, url in props]
-        # frecuencia de cada token de consulta entre las propiedades
-        df = {q: sum(1 for _n, _u, nt in prop_toks if matches(q, nt)) for q in qtokens}
-        scored_props = []
-        for name, url, ntoks in prop_toks:
+    # Ranking para catalogos de nombres multipalabra (propiedades, eventos,
+    # Data Types). Se puntua con frecuencia inversa para que un token-comodin
+    # (p. ej. "attribute", que matchea cientos de propiedades) pese mucho menos
+    # que uno especifico (p. ej. "length"), y el nombre pertinente quede arriba.
+    def rank_multiword(catalog, limit=10):
+        if not qtokens or not catalog:
+            return []
+        toks = [(name, url, set(tokens(name))) for name, url in catalog]
+        df = {q: sum(1 for _n, _u, nt in toks if matches(q, nt)) for q in qtokens}
+        scored = []
+        for name, url, ntoks in toks:
             hit = [q for q in qtokens if df[q] and matches(q, ntoks)]
             if hit:
                 score = sum(1.0 / df[q] for q in hit)
-                scored_props.append((score, len(name), name, url))
-        scored_props.sort(key=lambda r: (-r[0], r[1]))
-        rel_props = [(n, u) for _s, _l, n, u in scored_props[:10]]
+                scored.append((score, len(name), name, url))
+        scored.sort(key=lambda r: (-r[0], r[1]))
+        return [(n, u) for _s, _l, n, u in scored[:limit]]
+
+    rel_props = rank_multiword(props, 10)
+    rel_events = rank_multiword(events, 8)
+    rel_dts = rank_multiword(datatypes, 8)
 
     lines = [
         "## GROUNDING GeneXus (anti-alucinacion)",
@@ -211,14 +218,16 @@ def main():
         "Antes de escribir o describir codigo GeneXus (subrutinas, procedimientos,",
         "For Each, Business Components, Data Types, funciones, metodos, comandos):",
         "",
-        "1. NO inventes funciones, metodos, propiedades ni comandos. Usa solo los",
-        "   que aparezcan en el corpus.",
-        "2. REGLA DURA de API: toda funcion, metodo o comando que uses DEBE figurar",
-        f"   en `corpus/api.tsv` (catalogo verificado: {n_func} funciones, {n_meth}",
-        "   metodos, {0} comandos), y toda PROPIEDAD en `corpus/properties.tsv`".format(n_cmd),
-        f"   ({len(props)} propiedades). Si un nombre NO esta ahi, NO existe en GeneXus",
-        "   18: no lo uses. Comprueba con: grep -i \"^<nombre>\\b\" corpus/api.tsv",
-        "   corpus/properties.tsv",
+        "1. NO inventes funciones, metodos, propiedades, comandos, eventos ni",
+        "   Data Types. Usa solo los que aparezcan en el corpus.",
+        "2. REGLA DURA: todo nombre que uses DEBE figurar en el catalogo verificado",
+        "   correspondiente; si NO esta ahi, NO existe en GeneXus 18, no lo uses:",
+        f"     - funciones/metodos/comandos -> `corpus/api.tsv` ({n_func} func, "
+        f"{n_meth} met, {n_cmd} cmd)",
+        f"     - propiedades                -> `corpus/properties.tsv` ({len(props)})",
+        f"     - eventos                    -> `corpus/events.tsv` ({len(events)})",
+        f"     - Data Types                 -> `corpus/datatypes.tsv` ({len(datatypes)})",
+        "   Comprueba con: grep -i \"^<nombre>\\b\" corpus/api.tsv corpus/*.tsv",
         "3. Verifica la sintaxis exacta leyendo el articulo del nombre en",
         "   `corpus/articles/` (o el `source_url` del catalogo).",
         "4. Cita el `source_url` del articulo en el que te apoyas.",
@@ -245,6 +254,24 @@ def main():
         ]
         for name, url in rel_props:
             lines.append(f"- {name} | property | {url}")
+
+    if rel_events:
+        lines += [
+            "",
+            "Eventos verificados que podrian aplicar (nombre | fuente):",
+            "",
+        ]
+        for name, url in rel_events:
+            lines.append(f"- {name} | event | {url}")
+
+    if rel_dts:
+        lines += [
+            "",
+            "Data Types verificados que podrian aplicar (nombre | fuente):",
+            "",
+        ]
+        for name, url in rel_dts:
+            lines.append(f"- {name} | data type | {url}")
 
     if top:
         lines += [

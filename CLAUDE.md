@@ -27,6 +27,11 @@ clean, citable, retrieval-friendly corpus.
   - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1577
     entries; names are often multi-word, e.g. `Maximum length`). Same hard
     rule: a property not in this file does not exist in GeneXus 18.
+  - `corpus/events.tsv` — verified event catalog (`name\turl`, 61 entries,
+    e.g. `Start`, `IsValid`, `Refresh Grid`).
+  - `corpus/datatypes.tsv` — verified Data Type catalog (`name\turl`, 127
+    entries, e.g. `Boolean`, `Structured`, `VarChar`). Same hard rule applies
+    to both.
   - `corpus/README.md` — schema and grounding usage rules.
 - `INDICE_MAESTRO_GENEXUS.md` — a hand-curated learning index. Note: it
   references standalone topic files (`Variables.md`, `database-best-practices.md`,
@@ -35,8 +40,9 @@ clean, citable, retrieval-friendly corpus.
 - `.claude/hooks/genexus_grounding.py` + `.claude/settings.json` — a
   `UserPromptSubmit` hook that, when a prompt looks GeneXus-related, retrieves
   matching articles from `corpus/index.tsv`, the relevant verified names from
-  `corpus/api.tsv` and `corpus/properties.tsv`, and injects a strict directive
-  (hard rule: any function/method/command/property used must appear in those
+  the verified catalogs (`api.tsv`, `properties.tsv`, `events.tsv`,
+  `datatypes.tsv`), and injects a strict directive (hard rule: any
+  function/method/command/property/event/Data Type used must appear in those
   catalogs; verify against the corpus and cite `source_url`). This is the
   anti-hallucination guardrail.
 

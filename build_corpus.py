@@ -203,12 +203,52 @@ def main():
             pf.write(f"{name}\t{url}\n")
     n_props = len(props)
 
+    # catalogo de eventos verificados (titulos "<Nombre> event").
+    events = {}  # name -> url
+    for art_id, title, rel, url in index_rows:
+        if skip.match(title):
+            continue
+        words = title.split()
+        if not words or words[-1].lower() not in ("event", "events"):
+            continue
+        name = " ".join(words[:-1]).strip(" -–")
+        # nombres reales de eventos son cortos; frases largas son ruido
+        # (p. ej. paginas de categoria "Maps Control Type Events").
+        if len(name) >= 2 and len(name.split()) <= 3 and prop_name.match(name):
+            events.setdefault(name, url)
+    with open(os.path.join(OUT, "events.tsv"), "w", encoding="utf-8") as ef:
+        for name, url in sorted(events.items(), key=lambda x: x[0].lower()):
+            ef.write(f"{name}\t{url}\n")
+    n_events = len(events)
+
+    # catalogo de Data Types verificados (titulos "<Nombre> data type(s)").
+    datatypes = {}  # name -> url
+    for art_id, title, rel, url in index_rows:
+        if skip.match(title):
+            continue
+        words = title.split()
+        if len(words) < 3 or [w.lower() for w in words[-2:]] not in (
+            ["data", "type"], ["data", "types"]
+        ):
+            continue
+        name = " ".join(words[:-2]).strip(" -–")
+        # nombres reales de Data Types son cortos; frases largas son ruido
+        # (p. ej. "Save Method for ... extended Data Types").
+        if len(name) >= 2 and len(name.split()) <= 3 and prop_name.match(name):
+            datatypes.setdefault(name, url)
+    with open(os.path.join(OUT, "datatypes.tsv"), "w", encoding="utf-8") as df_:
+        for name, url in sorted(datatypes.items(), key=lambda x: x[0].lower()):
+            df_.write(f"{name}\t{url}\n")
+    n_dts = len(datatypes)
+
     print(f"Enlaces internos reescritos: {n_links}")
     print(f"Escritos {len(index_rows)} .md en {OUT}/articles/")
     print(f"JSONL: {jsonl_path}")
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
     print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres)")
     print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres)")
+    print(f"Catalogo eventos: {OUT}/events.tsv ({n_events} nombres)")
+    print(f"Catalogo Data Types: {OUT}/datatypes.tsv ({n_dts} nombres)")
 
 
 if __name__ == "__main__":
