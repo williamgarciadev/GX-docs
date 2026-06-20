@@ -99,8 +99,11 @@ def main():
         n = m.group(1)
         meth_cands[n.lower()] = n
 
+    # Para validar EXISTENCIA del nombre, ambas formas se comparan contra todo
+    # el catalogo: la distincion funcion/metodo es de estilo, no de existencia
+    # (muchas "funciones" se invocan como metodo sobre tipos de dato).
     bad_funcs = sorted({orig for low, orig in func_cands.items() if low not in alln})
-    bad_meths = sorted({orig for low, orig in meth_cands.items() if low not in meths})
+    bad_meths = sorted({orig for low, orig in meth_cands.items() if low not in alln})
 
     if not bad_funcs and not bad_meths:
         return  # todo verificado -> silencioso

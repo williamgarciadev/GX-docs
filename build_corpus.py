@@ -41,6 +41,16 @@ newest_block_re = re.compile(
 # encabezados de seccion y llamadas sueltas de ejemplo).
 head_method_re = re.compile(r"^#{3,4}\s*\[?\*{0,2}([A-Z][A-Za-z0-9]{2,})\*{0,2}\]?", re.M)
 call_method_re = re.compile(r"\.([A-Z][A-Za-z0-9]{2,})\s*\(")
+# Sintaxis de funcion documentada: nombre en negrita pegado al "(" (p. ej.
+# "**StrSearch(**" o "**Substr(***"). El "(" debe ir SIN espacio para no
+# capturar celdas de tabla como "**Character (n)**". Se exige ademas que el
+# articulo tenga "Type Returned" (marca de funcion/metodo).
+syntax_func_re = re.compile(r"\*\*([A-Z][A-Za-z0-9_]{2,})\(")
+LITERAL_STOP = {
+    "true", "false", "null", "and", "or", "not", "if", "then", "else",
+    "while", "for", "each", "do", "case", "when", "sub", "new", "return",
+    "exit", "where", "endif", "endfor", "endsub", "endcase",
+}
 SECTION_HEADINGS = {
     "syntax", "example", "examples", "description", "scope", "overview",
     "remarks", "note", "notes", "see", "parameters", "return", "returns",
@@ -90,7 +100,9 @@ def main():
     seen_ids = {}
     index_rows = []
     n_links = 0
-    scanned_methods = {}  # name -> source_url (metodos hallados en cuerpos)
+    scanned_methods = {}     # name -> url (metodos: encabezado ∩ llamada)
+    syntax_funcs = {}        # name -> url (sintaxis "**Name(" + Type Returned)
+    method_called_all = set()  # nombres invocados como ".Name(" en todo el corpus
 
     with open(jsonl_path, "w", encoding="utf-8") as jf:
         for k, (t_idx, f_idx, art_id) in enumerate(markers):
@@ -123,8 +135,14 @@ def main():
             heads = {h for h in head_method_re.findall(body)
                      if h.lower() not in SECTION_HEADINGS}
             calls = set(call_method_re.findall(body))
+            method_called_all |= calls
             for mname in heads & calls:
                 scanned_methods.setdefault(mname, source_url)
+            # funciones documentadas por bloque de sintaxis ("**Name(" + Type Returned)
+            if "Type Returned" in body or "Type returned" in body:
+                for fname in syntax_func_re.findall(body):
+                    if fname.lower() not in LITERAL_STOP:
+                        syntax_funcs.setdefault(fname, source_url)
 
             slug = slugify(title)
             uid = art_id
@@ -213,13 +231,20 @@ def main():
         api.setdefault((name, kind), url)
     # metodos auto-capturados del cuerpo de los articulos (no pisan los ya
     # presentes como funcion/comando/metodo por titulo).
+    in_api = lambda nm: any((nm, k) in api for k in ("function", "method", "command"))
     n_scanned_new = 0
     for name, url in scanned_methods.items():
-        if (name, "method") not in api and not any(
-            (name, k) in api for k in ("function", "command")
-        ):
+        if not in_api(name):
             api[(name, "method")] = url
             n_scanned_new += 1
+    # funciones por sintaxis: el tipo se decide a nivel de corpus (si se invoca
+    # como ".Name(" en algun sitio es metodo; si no, funcion).
+    n_syntax_new = 0
+    for name, url in syntax_funcs.items():
+        if not in_api(name):
+            kind = "method" if name in method_called_all else "function"
+            api[(name, kind)] = url
+            n_syntax_new += 1
     with open(os.path.join(OUT, "api.tsv"), "w", encoding="utf-8") as af:
         for (name, kind), url in sorted(api.items(), key=lambda x: (x[0][1], x[0][0].lower())):
             af.write(f"{name}\t{kind}\t{url}\n")
@@ -286,7 +311,7 @@ def main():
     print(f"JSONL: {jsonl_path}")
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
     print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres; "
-          f"{n_scanned_new} metodos auto-capturados de los articulos)")
+          f"+{n_scanned_new} metodos, +{n_syntax_new} por sintaxis, del cuerpo)")
     print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres)")
     print(f"Catalogo eventos: {OUT}/events.tsv ({n_events} nombres)")
     print(f"Catalogo Data Types: {OUT}/datatypes.tsv ({n_dts} nombres)")

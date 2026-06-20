@@ -20,14 +20,17 @@ clean, citable, retrieval-friendly corpus.
   - `corpus/genexus_corpus.jsonl` — one JSON record per article for embeddings/RAG.
   - `corpus/INDEX.md` — navigable index linking every article to its wiki source.
   - `corpus/index.tsv` — flat `id\ttitle\tpath\turl` index for fast lookup.
-  - `corpus/api.tsv` — verified API catalog (`name\tkind\turl`, 530 entries:
-    127 functions, 377 methods, 26 commands). Names come from article titles
-    (`<Name> function|method|command`) plus methods auto-scanned from article
-    bodies via the heading∩call rule (a name appearing both as a `#### [Name]`
-    heading and a `.Name(` call in the same article — high precision, captures
-    e.g. the RegEx methods `IsMatch`/`Matches`/`ReplaceRegEx`/`SplitRegEx`),
-    plus a small hand-seeded `EXTRA_API`. The hard anti-hallucination rule: a
-    function/method/command not in this file does not exist in GeneXus 18.
+  - `corpus/api.tsv` — verified API catalog (`name\tkind\turl`, 546 entries:
+    139 functions, 381 methods, 26 commands). Names come from: (a) article
+    titles (`<Name> function|method|command`); (b) methods auto-scanned from
+    bodies via the heading∩call rule (name appears both as a `#### [Name]`
+    heading and a `.Name(` call in the same article); (c) functions auto-scanned
+    from syntax blocks (`**Name(` bold-name-paren in an article that has
+    "Type Returned"), with the kind decided corpus-wide (method if ever invoked
+    as `.Name(`); (d) a small hand-seeded `EXTRA_API`. This captures API
+    documented inside composite articles, e.g. the RegEx methods
+    `IsMatch`/`Matches`/`ReplaceRegEx`/`SplitRegEx`. The hard anti-hallucination
+    rule: a function/method/command not in this file does not exist in GeneXus 18.
   - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1577
     entries; names are often multi-word, e.g. `Maximum length`). Same hard
     rule: a property not in this file does not exist in GeneXus 18.

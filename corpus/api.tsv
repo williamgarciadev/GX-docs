@@ -30,11 +30,13 @@ AddYr	function	https://wiki.genexus.com/commwiki/wiki?8317
 After	function	https://wiki.genexus.com/commwiki/wiki?8321
 Age	function	https://wiki.genexus.com/commwiki/wiki?8330
 Asc	function	https://wiki.genexus.com/commwiki/wiki?13973
+ASC	function	https://wiki.genexus.com/commwiki/wiki?13973
 Azure	function	https://wiki.genexus.com/commwiki/wiki?47430
 BrowserId	function	https://wiki.genexus.com/commwiki/wiki?8336
 BrowserVersion	function	https://wiki.genexus.com/commwiki/wiki?8337
 ByteCount	function	https://wiki.genexus.com/commwiki/wiki?2455
 CDoW	function	https://wiki.genexus.com/commwiki/wiki?8340
+Cdow	function	https://wiki.genexus.com/commwiki/wiki?8340
 Chr	function	https://wiki.genexus.com/commwiki/wiki?13656
 CMonth	function	https://wiki.genexus.com/commwiki/wiki?8343
 Color	function	https://wiki.genexus.com/commwiki/wiki?8345
@@ -45,6 +47,7 @@ Confirm	function	https://wiki.genexus.com/commwiki/wiki?31634
 Create	function	https://wiki.genexus.com/commwiki/wiki?8359
 CreateFromURL	function	https://wiki.genexus.com/commwiki/wiki?20509
 CtoD	function	https://wiki.genexus.com/commwiki/wiki?7472
+Ctod	function	https://wiki.genexus.com/commwiki/wiki?7472
 CtoT	function	https://wiki.genexus.com/commwiki/wiki?7473
 Day	function	https://wiki.genexus.com/commwiki/wiki?8376
 Decrypt64	function	https://wiki.genexus.com/commwiki/wiki?8382
@@ -62,12 +65,17 @@ DFWPNum	function	https://wiki.genexus.com/commwiki/wiki?8374
 DFWPTxt	function	https://wiki.genexus.com/commwiki/wiki?8375
 DoW	function	https://wiki.genexus.com/commwiki/wiki?8344
 DtoC	function	https://wiki.genexus.com/commwiki/wiki?7475
+Dtoc	function	https://wiki.genexus.com/commwiki/wiki?7475
 Encrypt64	function	https://wiki.genexus.com/commwiki/wiki?8386
 EoM	function	https://wiki.genexus.com/commwiki/wiki?8392
 FileExist	function	https://wiki.genexus.com/commwiki/wiki?8390
 Format	function	https://wiki.genexus.com/commwiki/wiki?8406
 FromBase64	function	https://wiki.genexus.com/commwiki/wiki?34450
 FTP	function	https://wiki.genexus.com/commwiki/wiki?8393
+GetAttEntityNotationByIndex	function	https://wiki.genexus.com/commwiki/wiki?7105
+GetAttEntityNotationByName	function	https://wiki.genexus.com/commwiki/wiki?7105
+GetAttEntityValueByIndex	function	https://wiki.genexus.com/commwiki/wiki?7105
+GetAttEntityValueByName	function	https://wiki.genexus.com/commwiki/wiki?7105
 GetCookie	function	https://wiki.genexus.com/commwiki/wiki?6879
 GetDataStore	function	https://wiki.genexus.com/commwiki/wiki?7007
 GetEncryptionKey	function	https://wiki.genexus.com/commwiki/wiki?8385
@@ -102,6 +110,7 @@ Null	function	https://wiki.genexus.com/commwiki/wiki?8421
 Nullvalue	function	https://wiki.genexus.com/commwiki/wiki?8226
 OpenDocument	function	https://wiki.genexus.com/commwiki/wiki?8473
 PadL	function	https://wiki.genexus.com/commwiki/wiki?8475
+Padl	function	https://wiki.genexus.com/commwiki/wiki?8475
 PadR	function	https://wiki.genexus.com/commwiki/wiki?8476
 PathToURL	function	https://wiki.genexus.com/commwiki/wiki?9563
 Previous	function	https://wiki.genexus.com/commwiki/wiki?8477
@@ -145,11 +154,14 @@ Upper	function	https://wiki.genexus.com/commwiki/wiki?8466
 UrlDecode	function	https://wiki.genexus.com/commwiki/wiki?57664
 UrlEncode	function	https://wiki.genexus.com/commwiki/wiki?57781
 UserId	function	https://wiki.genexus.com/commwiki/wiki?8518
+Userid	function	https://wiki.genexus.com/commwiki/wiki?8518
+USERID	function	https://wiki.genexus.com/commwiki/wiki?8518
 Val	function	https://wiki.genexus.com/commwiki/wiki?8528
 WrkSt	function	https://wiki.genexus.com/commwiki/wiki?8520
 XSLTApply	function	https://wiki.genexus.com/commwiki/wiki?12749
 Year	function	https://wiki.genexus.com/commwiki/wiki?8380
 YMDHMStoT	function	https://wiki.genexus.com/commwiki/wiki?7626
+YmdHmstoT	function	https://wiki.genexus.com/commwiki/wiki?7626
 YMDtoD	function	https://wiki.genexus.com/commwiki/wiki?7627
 Add	method	https://wiki.genexus.com/commwiki/wiki?8657
 AddAuthentication	method	https://wiki.genexus.com/commwiki/wiki?7091
@@ -280,6 +292,7 @@ FromString	method	https://wiki.genexus.com/commwiki/wiki?12694
 FromTimeZone	method	https://wiki.genexus.com/commwiki/wiki?21916
 FromURL	method	https://wiki.genexus.com/commwiki/wiki?9644
 FromWkt	method	https://wiki.genexus.com/commwiki/wiki?18900
+FromXml	method	https://wiki.genexus.com/commwiki/wiki?8788
 Generate	method	https://wiki.genexus.com/commwiki/wiki?43986
 Get	method	https://wiki.genexus.com/commwiki/wiki?6812
 GetAbsoluteName	method	https://wiki.genexus.com/commwiki/wiki?6567
@@ -340,6 +353,7 @@ Hide	method	https://wiki.genexus.com/commwiki/wiki?7066
 Hour	method	https://wiki.genexus.com/commwiki/wiki?12652
 IndexOf	method	https://wiki.genexus.com/commwiki/wiki?12696
 Info	method	https://wiki.genexus.com/commwiki/wiki?37872
+InsertOrUpdate	method	https://wiki.genexus.com/commwiki/wiki?31697
 Integer	method	https://wiki.genexus.com/commwiki/wiki?12723
 Intersect	method	https://wiki.genexus.com/commwiki/wiki?59378
 IsEmpty	method	https://wiki.genexus.com/commwiki/wiki?9645
@@ -481,6 +495,7 @@ ToDate	method	https://wiki.genexus.com/commwiki/wiki?14231
 ToFile	method	https://wiki.genexus.com/commwiki/wiki?7089
 ToFormattedString	method	https://wiki.genexus.com/commwiki/wiki?12722
 ToGeoJSON	method	https://wiki.genexus.com/commwiki/wiki?59810
+ToGeoJson	method	https://wiki.genexus.com/commwiki/wiki?59810
 ToHexa	method	https://wiki.genexus.com/commwiki/wiki?42675
 ToJson	method	https://wiki.genexus.com/commwiki/wiki?37817
 ToLower	method	https://wiki.genexus.com/commwiki/wiki?12714
@@ -491,6 +506,7 @@ ToStringHexa	method	https://wiki.genexus.com/commwiki/wiki?42676
 ToUniversalTime	method	https://wiki.genexus.com/commwiki/wiki?16416
 ToUpper	method	https://wiki.genexus.com/commwiki/wiki?12716
 ToWkt	method	https://wiki.genexus.com/commwiki/wiki?59814
+ToXml	method	https://wiki.genexus.com/commwiki/wiki?8789
 Trim	method	https://wiki.genexus.com/commwiki/wiki?12718
 TrimEnd	method	https://wiki.genexus.com/commwiki/wiki?12719
 TrimStart	method	https://wiki.genexus.com/commwiki/wiki?12720
