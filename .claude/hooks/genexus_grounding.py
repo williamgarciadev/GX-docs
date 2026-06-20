@@ -108,6 +108,20 @@ def load_api(path):
     return api
 
 
+def load_props(path):
+    """Catalogo de propiedades verificadas: lista de (name, url)."""
+    props = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 2:
+                    props.append(parts)  # name, url
+    except OSError:
+        pass
+    return props
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -123,6 +137,7 @@ def main():
     base = project_dir()
     rows = load_index(os.path.join(base, "corpus", "index.tsv"))
     api = load_api(os.path.join(base, "corpus", "api.tsv"))
+    props = load_props(os.path.join(base, "corpus", "properties.tsv"))
     if not rows and not api:
         return
 
@@ -171,6 +186,24 @@ def main():
                 rel_api.append((name, kind, url))
     rel_api = rel_api[:12]
 
+    # propiedades relevantes: el nombre es multipalabra. Se puntua con
+    # frecuencia inversa para que un token-comodin como "attribute" (que
+    # matchea cientos de propiedades) pese mucho menos que uno especifico
+    # como "length", y la propiedad realmente pertinente quede arriba.
+    rel_props = []
+    if qtokens:
+        prop_toks = [(name, url, set(tokens(name))) for name, url in props]
+        # frecuencia de cada token de consulta entre las propiedades
+        df = {q: sum(1 for _n, _u, nt in prop_toks if matches(q, nt)) for q in qtokens}
+        scored_props = []
+        for name, url, ntoks in prop_toks:
+            hit = [q for q in qtokens if df[q] and matches(q, ntoks)]
+            if hit:
+                score = sum(1.0 / df[q] for q in hit)
+                scored_props.append((score, len(name), name, url))
+        scored_props.sort(key=lambda r: (-r[0], r[1]))
+        rel_props = [(n, u) for _s, _l, n, u in scored_props[:10]]
+
     lines = [
         "## GROUNDING GeneXus (anti-alucinacion)",
         "",
@@ -182,10 +215,12 @@ def main():
         "   que aparezcan en el corpus.",
         "2. REGLA DURA de API: toda funcion, metodo o comando que uses DEBE figurar",
         f"   en `corpus/api.tsv` (catalogo verificado: {n_func} funciones, {n_meth}",
-        "   metodos, {0} comandos). Si un nombre NO esta ahi, NO existe en GeneXus".format(n_cmd),
+        "   metodos, {0} comandos), y toda PROPIEDAD en `corpus/properties.tsv`".format(n_cmd),
+        f"   ({len(props)} propiedades). Si un nombre NO esta ahi, NO existe en GeneXus",
         "   18: no lo uses. Comprueba con: grep -i \"^<nombre>\\b\" corpus/api.tsv",
+        "   corpus/properties.tsv",
         "3. Verifica la sintaxis exacta leyendo el articulo del nombre en",
-        "   `corpus/articles/` (o el `source_url` que aparece en `corpus/api.tsv`).",
+        "   `corpus/articles/` (o el `source_url` del catalogo).",
         "4. Cita el `source_url` del articulo en el que te apoyas.",
         "5. Si NO encuentras respaldo en el corpus, dilo explicitamente en vez de",
         "   suponer; no rellenes huecos con APIs de otros lenguajes (no inventes",
@@ -201,6 +236,15 @@ def main():
         ]
         for name, kind, url in rel_api:
             lines.append(f"- {name} | {kind} | {url}")
+
+    if rel_props:
+        lines += [
+            "",
+            "Propiedades verificadas que podrian aplicar (nombre | fuente):",
+            "",
+        ]
+        for name, url in rel_props:
+            lines.append(f"- {name} | property | {url}")
 
     if top:
         lines += [

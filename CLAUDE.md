@@ -24,6 +24,9 @@ clean, citable, retrieval-friendly corpus.
     127 functions, 203 methods, 26 commands) extracted from article titles.
     The hard anti-hallucination rule: a function/method/command not in this
     file does not exist in GeneXus 18.
+  - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1577
+    entries; names are often multi-word, e.g. `Maximum length`). Same hard
+    rule: a property not in this file does not exist in GeneXus 18.
   - `corpus/README.md` — schema and grounding usage rules.
 - `INDICE_MAESTRO_GENEXUS.md` — a hand-curated learning index. Note: it
   references standalone topic files (`Variables.md`, `database-best-practices.md`,
@@ -32,9 +35,10 @@ clean, citable, retrieval-friendly corpus.
 - `.claude/hooks/genexus_grounding.py` + `.claude/settings.json` — a
   `UserPromptSubmit` hook that, when a prompt looks GeneXus-related, retrieves
   matching articles from `corpus/index.tsv`, the relevant verified names from
-  `corpus/api.tsv`, and injects a strict directive (hard rule: any
-  function/method/command used must appear in `corpus/api.tsv`; verify against
-  the corpus and cite `source_url`). This is the anti-hallucination guardrail.
+  `corpus/api.tsv` and `corpus/properties.tsv`, and injects a strict directive
+  (hard rule: any function/method/command/property used must appear in those
+  catalogs; verify against the corpus and cite `source_url`). This is the
+  anti-hallucination guardrail.
 
 ## Common commands
 

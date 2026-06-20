@@ -185,11 +185,30 @@ def main():
             af.write(f"{name}\t{kind}\t{url}\n")
     n_api = len(api)
 
+    # catalogo de propiedades verificadas. Los nombres suelen ser multipalabra
+    # (p. ej. "Maximum length"), por eso se permiten espacios.
+    prop_name = re.compile(r"^[A-Za-z][A-Za-z0-9 _/-]*$")
+    props = {}  # name -> url
+    for art_id, title, rel, url in index_rows:
+        if skip.match(title):
+            continue
+        words = title.split()
+        if not words or words[-1].lower() not in ("property", "properties"):
+            continue
+        name = " ".join(words[:-1]).strip(" -–")
+        if len(name) >= 2 and prop_name.match(name):
+            props.setdefault(name, url)
+    with open(os.path.join(OUT, "properties.tsv"), "w", encoding="utf-8") as pf:
+        for name, url in sorted(props.items(), key=lambda x: x[0].lower()):
+            pf.write(f"{name}\t{url}\n")
+    n_props = len(props)
+
     print(f"Enlaces internos reescritos: {n_links}")
     print(f"Escritos {len(index_rows)} .md en {OUT}/articles/")
     print(f"JSONL: {jsonl_path}")
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
     print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres)")
+    print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres)")
 
 
 if __name__ == "__main__":
