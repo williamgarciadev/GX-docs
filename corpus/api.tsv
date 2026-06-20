@@ -244,6 +244,7 @@ IndexOf	method	https://wiki.genexus.com/commwiki/wiki?12696
 Integer	method	https://wiki.genexus.com/commwiki/wiki?12723
 Intersect	method	https://wiki.genexus.com/commwiki/wiki?59378
 IsEmpty	method	https://wiki.genexus.com/commwiki/wiki?9645
+IsMatch	method	https://wiki.genexus.com/commwiki/wiki?4606
 IsNull	method	https://wiki.genexus.com/commwiki/wiki?12735
 JSEvent	method	https://wiki.genexus.com/commwiki/wiki?8809
 KillSession	method	https://wiki.genexus.com/commwiki/wiki?34398
@@ -282,6 +283,7 @@ RemoveRange	method	https://wiki.genexus.com/commwiki/wiki?57655
 Rename	method	https://wiki.genexus.com/commwiki/wiki?46089
 RenameSheet	method	https://wiki.genexus.com/commwiki/wiki?7100
 Replace	method	https://wiki.genexus.com/commwiki/wiki?12710
+ReplaceRegEx	method	https://wiki.genexus.com/commwiki/wiki?4606
 Round	method	https://wiki.genexus.com/commwiki/wiki?12726
 RoundToEven	method	https://wiki.genexus.com/commwiki/wiki?12729
 SaveAs	method	https://wiki.genexus.com/commwiki/wiki?7058

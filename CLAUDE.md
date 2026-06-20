@@ -48,6 +48,12 @@ clean, citable, retrieval-friendly corpus.
   match, the hook injects a fallback telling the agent to verify against the
   live official wiki (`WebSearch site:wiki.genexus.com <terms>` / `WebFetch`)
   and cite the real URL — never invent when offline.
+- `.claude/hooks/genexus_validate.py` — a `PostToolUse` (Write|Edit) hook that,
+  after GeneXus code is written, extracts function/method calls and warns
+  (non-blocking) about any name not in `corpus/api.tsv`. It self-skips files
+  under `corpus/` and files without GeneXus code signals. User-defined
+  procedures/SDT/BC methods are expected to surface (they aren't built-ins), so
+  the message is advisory, not a hard block.
 
 ## Common commands
 

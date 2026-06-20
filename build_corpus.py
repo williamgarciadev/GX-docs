@@ -180,6 +180,15 @@ def main():
             cand = cand.strip()
             if ident.match(cand):
                 api.setdefault((cand, kind), url)
+    # API verificada documentada DENTRO de articulos compuestos (no como
+    # titulo "<Nombre> method"), por eso la extraccion por titulo no la captura.
+    # Sembrada a mano con su source_url verificado.
+    EXTRA_API = [
+        ("IsMatch", "method", WIKI.format(4606)),       # RegEx (RegEx)
+        ("ReplaceRegEx", "method", WIKI.format(4606)),  # RegEx (RegEx)
+    ]
+    for name, kind, url in EXTRA_API:
+        api.setdefault((name, kind), url)
     with open(os.path.join(OUT, "api.tsv"), "w", encoding="utf-8") as af:
         for (name, kind), url in sorted(api.items(), key=lambda x: (x[0][1], x[0][0].lower())):
             af.write(f"{name}\t{kind}\t{url}\n")
