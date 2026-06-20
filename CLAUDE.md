@@ -20,10 +20,14 @@ clean, citable, retrieval-friendly corpus.
   - `corpus/genexus_corpus.jsonl` — one JSON record per article for embeddings/RAG.
   - `corpus/INDEX.md` — navigable index linking every article to its wiki source.
   - `corpus/index.tsv` — flat `id\ttitle\tpath\turl` index for fast lookup.
-  - `corpus/api.tsv` — verified API catalog (`name\tkind\turl`, 356 entries:
-    127 functions, 203 methods, 26 commands) extracted from article titles.
-    The hard anti-hallucination rule: a function/method/command not in this
-    file does not exist in GeneXus 18.
+  - `corpus/api.tsv` — verified API catalog (`name\tkind\turl`, 530 entries:
+    127 functions, 377 methods, 26 commands). Names come from article titles
+    (`<Name> function|method|command`) plus methods auto-scanned from article
+    bodies via the heading∩call rule (a name appearing both as a `#### [Name]`
+    heading and a `.Name(` call in the same article — high precision, captures
+    e.g. the RegEx methods `IsMatch`/`Matches`/`ReplaceRegEx`/`SplitRegEx`),
+    plus a small hand-seeded `EXTRA_API`. The hard anti-hallucination rule: a
+    function/method/command not in this file does not exist in GeneXus 18.
   - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1577
     entries; names are often multi-word, e.g. `Maximum length`). Same hard
     rule: a property not in this file does not exist in GeneXus 18.
@@ -70,7 +74,10 @@ clean, citable, retrieval-friendly corpus.
 `File:`/`Newest Version` wiki cruft, rewrites internal `NNNN.html` links to absolute
 `https://wiki.genexus.com/commwiki/wiki?NNNN` URLs, and replaces broken
 `./images/NNNN.*` embeds with a `` `[imagen omitida: wiki id N]` `` marker (the
-images were never included in the dump). Re-running fully regenerates `corpus/`.
+images were never included in the dump). It also derives the lookup/catalog
+files (`index.tsv`, `api.tsv`, `properties.tsv`, `events.tsv`, `datatypes.tsv`)
+— including scanning article bodies for documented methods. Re-running fully
+regenerates `corpus/`.
 
 ## Conventions
 

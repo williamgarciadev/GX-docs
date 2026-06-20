@@ -35,6 +35,19 @@ img_re = re.compile(
 newest_block_re = re.compile(
     r"\n?\|\s*\|\n\| --- \|\n\| \[Newest Version\][^\n]*\n", re.MULTILINE
 )
+# Escaneo de metodos documentados DENTRO de articulos: se capturan los nombres
+# que aparecen a la vez como encabezado "#### [Nombre]" y como llamada
+# ".Nombre(" en el mismo articulo (doble senal = alta precision; descarta
+# encabezados de seccion y llamadas sueltas de ejemplo).
+head_method_re = re.compile(r"^#{3,4}\s*\[?\*{0,2}([A-Z][A-Za-z0-9]{2,})\*{0,2}\]?", re.M)
+call_method_re = re.compile(r"\.([A-Z][A-Za-z0-9]{2,})\s*\(")
+SECTION_HEADINGS = {
+    "syntax", "example", "examples", "description", "scope", "overview",
+    "remarks", "note", "notes", "see", "parameters", "return", "returns",
+    "features", "properties", "methods", "definition", "introduction",
+    "sample", "samples", "usage", "values", "purpose", "considerations",
+    "availability", "object", "objects", "output", "input",
+}
 
 
 def slugify(text, maxlen=60):
@@ -77,6 +90,7 @@ def main():
     seen_ids = {}
     index_rows = []
     n_links = 0
+    scanned_methods = {}  # name -> source_url (metodos hallados en cuerpos)
 
     with open(jsonl_path, "w", encoding="utf-8") as jf:
         for k, (t_idx, f_idx, art_id) in enumerate(markers):
@@ -104,6 +118,14 @@ def main():
             body = re.sub(r"^---\s*$", "", body, count=1, flags=re.MULTILINE).strip()
 
             source_url = WIKI.format(art_id)
+
+            # metodos documentados dentro del articulo (encabezado ∩ llamada)
+            heads = {h for h in head_method_re.findall(body)
+                     if h.lower() not in SECTION_HEADINGS}
+            calls = set(call_method_re.findall(body))
+            for mname in heads & calls:
+                scanned_methods.setdefault(mname, source_url)
+
             slug = slugify(title)
             uid = art_id
             if uid in seen_ids:
@@ -189,6 +211,15 @@ def main():
     ]
     for name, kind, url in EXTRA_API:
         api.setdefault((name, kind), url)
+    # metodos auto-capturados del cuerpo de los articulos (no pisan los ya
+    # presentes como funcion/comando/metodo por titulo).
+    n_scanned_new = 0
+    for name, url in scanned_methods.items():
+        if (name, "method") not in api and not any(
+            (name, k) in api for k in ("function", "command")
+        ):
+            api[(name, "method")] = url
+            n_scanned_new += 1
     with open(os.path.join(OUT, "api.tsv"), "w", encoding="utf-8") as af:
         for (name, kind), url in sorted(api.items(), key=lambda x: (x[0][1], x[0][0].lower())):
             af.write(f"{name}\t{kind}\t{url}\n")
@@ -254,7 +285,8 @@ def main():
     print(f"Escritos {len(index_rows)} .md en {OUT}/articles/")
     print(f"JSONL: {jsonl_path}")
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
-    print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres)")
+    print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres; "
+          f"{n_scanned_new} metodos auto-capturados de los articulos)")
     print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres)")
     print(f"Catalogo eventos: {OUT}/events.tsv ({n_events} nombres)")
     print(f"Catalogo Data Types: {OUT}/datatypes.tsv ({n_dts} nombres)")
