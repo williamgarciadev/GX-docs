@@ -1,0 +1,384 @@
+---
+title: "Creating an Extension Library for iOS"
+source_id: 36340
+source_url: https://wiki.genexus.com/commwiki/wiki?36340
+genexus_version: "18"
+---
+
+# Creating an Extension Library for iOS
+
+This article provides the implementation details supported for the iOS generator to create an [Extension Library](https://wiki.genexus.com/commwiki/wiki?33545).
+
+### [**iOS Node**](#iOS+Node)
+
+Indicates the implementation dependencies for the iOS generator.
+
+**Attributes:**Platforms
+
+Optional. It allows indicating the Apple platforms for which this extension is planned, separated by commas. This means you can set the extension to be supported only for watchOS:
+
+```
+    <iOS platforms="watchOS">
+        ...
+    </iOS>
+```
+
+Or for watchOs and tvOS, but not for iOS:
+
+```
+    <iOS platforms="watchOS, tvOS">
+        ...
+    </iOS>
+```
+
+If this attribute is not included, the extension will be supported for all platforms.
+
+**Values:** iOS, tvOS, watchOS.
+
+## [Supported nodes](#Supported+nodes)
+
+This section describes which nodes are supported as extensibility points.
+
+### [**ModuleClass node**](#ModuleClass+node)
+
+Optional. A class name that initializes the extensibility implementation with what it needs. It must implement GXExtensionLibraryProtocol.  
+The value for this extensibility point is optional because there may be nothing to register (e.g. for User Controls).
+
+#### [Example](#Example)
+
+```
+@objc(MyExtensionLibraryClassName)
+public class MyExtensionLibraryClassName: NSObject, GXExtensionLibraryProtocol {
+
+    public func initializeExtensionLibrary(withContext context: GXExtensionLibraryContext) {
+
+       GXActionExternalObjectHandler.register(MyGXActionExternalObjectHandlerSubclass.self, forExternalObjectName: "Module.Path.To.MyExternalObject")
+
+       // Other components initialization, except for User Controls because GeneXus automatically generates the mapping by using the UC definition.
+
+    }
+
+}
+```
+
+Note that the implementation uses Swift language. In this case, the @objc(MyExtensionLibraryClassName) notation must be used in order to instantiate this class at runtime via reflection.
+
+### [**PodFile node**](#PodFile+node)
+
+Optional. Support for [CocoaPods](https://cocoapods.org/) extensibility dependencies. In this node, a relative path to a [PodFile](https://guides.cocoapods.org/syntax/podfile.html) template (see the example below) may be included. In case this feature is used, the CocoaPods command line tool must be installed on the deployment Mac (refer to *Command line tool* subsection).
+
+It is possible to include public dependencies in CocoaPods global repository, but it is also possible to include private dependencies in a local repository on the Mac. For the latter option, GeneXus will automatically create a local repository named GXLocal in your deployment Mac computer when it detects any extension library that uses CocoaPods. Also, the usage of a local repository might be useful when the Mac has Internet access restrictions.
+
+#### [Command line tool](#Command+line+tool)
+
+To install the CocoaPods command line tool, execute the following command on the deployment Mac.
+
+```
+> sudo gem install cocoapods
+```
+
+The download process might fail with the following error:
+
+error: RPC failed; curl 56 SSLRead() return error -9806  
+fatal: The remote end hung up unexpectedly  
+fatal: early EOF  
+fatal: index-pack failed
+
+In this case, retry to execute the command.
+
+**Warning**: If the generated application is tested on a Mac computer, the *\*.xcworkspace* file must be opened instead of the *\*.xcodeproj* one.
+
+#### [Example](#Example)
+
+```
+$if(Main.AppleDevice_iOS)$
+target '$Main.iOSXcodeProjectName$' do
+  pod 'MyExtension', '> 2.5.4'
+end
+target 'MyServiceExtension' do
+    platform :ios, '$Main.iOSDeploymentTarget_iOS$'
+  pod 'MyExtension', '> 2.5.4'
+end
+$endif$
+```
+
+### [**XCProjExtensionFile node**](#XCProjExtensionFile+node)
+
+Optional. Reference to a string template that has to produce an XML with the format shown in the example. With this mechanism, it is possible to extend the generated XCode project.
+
+#### [Example](#Example)
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<XCExtension>
+   <ProjectSections>
+        <Extends>
+           <NodeToBeExtended>
+             <![CDATA[Content to be added to NodeToBeExtended]]>
+          <NodeToBeExtended/>
+          ...
+        </Extends>
+    </ProjectSections>
+</XCExtension>
+```
+
+Every NodeToBeExtended must match the template placeholders in the XCode project with format <<<NodeToBeExtended>>> (e.g. <<<PBXFileReference>>> for adding a reference to the project).
+
+**Note:**
+
+Since [GeneXus 16 upgrade 3](https://wiki.genexus.com/commwiki/wiki?42129,,), a node that has the format *<<< PLACEHOLDER\_NAME :: TARGET\_NAME :: >>>* can be extended using the Target attribute. So, it will look as follows: *<PLACEHOLDER\_NAME target = "TARGET\_NAME" ></ PLACEHOLDER\_NAME>*.
+
+It is recommended not to use IDs that begin with 67 since those generated by GeneXus begin with this prefix.
+
+**Example:**
+
+```
+<<<PBXSourcesBuildPhase::WatchExtension::>>>
+```
+
+looks like
+
+```
+<PBXSourcesBuildPhase target=‘WatchExtension’>.
+```
+
+**Tips**
+
+The easiest way to know what has to be added to a project consists of splitting the XCode-generated project. In the duplicate project, make the desired modifications using XCode and then make a diff from the original project. With this mechanism, you can easily see which modifications should be made if the project was made manually.
+
+Check the GeneXus installation *Libraries* folder. You will find existing libraries so you can check the configuration files to create your own extensions.
+
+For the complete list of available tags, check the **GeneXusInstallFolder > iOS > Templates > iOS\_Genexus > MainName.xcodeproj > project.pbxproj** file with the pattern *<<<SampleName>>>.* Some nodes are:
+
+* PBXBuildFile
+* PBXFileReference
+* PBXFrameworksBuildPhase
+* PBXSourcesBuildPhase
+* PBXResourcesBuildPhase
+* PBXGroup\_Shared
+* PBXGroup\_Frameworks
+* PBXLibrarySearchPath\_Release and PBXLibrarySearchPath\_Debug (1)
+* PBXFrameworkSearchPath\_Release and PBXFrameworkSearchPath\_Debug (1)
+
+### [**CopyListFile node**](#CopyListFile+node)
+
+Optional. Reference to string template which must produce an XML (see the example below) with those files, directories, and templates to be copied to the generated XCode project.
+
+#### [Example](#Example)
+
+The XML file must be an XSD as shown below:
+
+```
+<?xml version="1.0" encoding="utf-8"?>
+<xs:schema id="ExtensionCopyFile"
+            targetNamespace="http://schemas.genexus.com/ExtensionCopyFile.xsd"
+            elementFormDefault="qualified"
+            xmlns="http://schemas.genexus.com/ExtensionCopyFile.xsd"
+            xmlns:mstns="http://schemas.genexus.com/ExtensionCopyFile.xsd"
+            xmlns:xs="http://www.w3.org/2001/XMLSchema"
+            xmlns:pd="http://schemas.genexus.com/ExtensionCopyFile.xsd"
+>
+    <xs:element name="CopyList">
+        <xs:complexType>
+            <xs:choice maxOccurs="unbounded">
+                <xs:element name="Template">
+                    <xs:complexType>
+                        <xs:attribute name="Id"    use="required"/>
+                        <xs:attribute name="Name" use="optional"/>
+                        <xs:attribute name="InputPath"  default="" use="optional"/>
+                        <xs:attribute name="Recursive" type="xs:boolean" default="true"/>
+                        <xs:attribute name="Pattern"     default=""/>
+                        <xs:attribute name="Output" />
+                        <xs:attribute name="Delimiter" use="optional" default="$"/>
+                        <xs:attribute name="TemplateEncoding" type="TEncoding" use="optional" />
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="CopyFile">
+                    <xs:complexType>
+                        <xs:attribute name="Name" use="required"/>
+                        <xs:attribute name="Output"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="CopyDirectory">
+                    <xs:complexType>
+                        <xs:attribute name="Name" use="required"/>
+                        <xs:attribute name="Output"/>
+                        <xs:attribute name="Recursive" type="xs:boolean" default="true"/>
+                        <xs:attribute name="Force" type="xs:boolean" default="true"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="Variable">
+                    <xs:complexType>
+                        <xs:attribute name="Name" type="xs:string" use="required"/>
+                        <xs:attribute name="Class" type="xs:string" use="required"/>
+                    </xs:complexType>
+                </xs:element>
+
+                <xs:element name="CopyKBFile">
+                    <xs:complexType>
+                        <xs:attribute name="Name" use="optional"/>
+                        <xs:attribute name="PropertyId" use="optional"/>
+                        <xs:attribute name="PropertySource" type="TPropertySource" use="optional" default="Main"/>
+                        <xs:attribute name="Output" use="required"/>
+                        <xs:attribute name="Required" type="xs:boolean" default="true"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:choice>
+        </xs:complexType>
+    </xs:element>
+
+    <xs:simpleType name="TEncoding">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Machine Default" />
+            <xs:enumeration value="UTF8 (no BOM)" />
+            <xs:enumeration value="UTF8 (including BOM)" />
+        </xs:restriction>
+    </xs:simpleType>
+
+    <xs:simpleType name="TPropertySource">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="Main" />
+            <xs:enumeration value="WatchMain" />
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
+```
+
+### [**CustomURLScheme node**](#CustomURLScheme+node)
+
+Optional. A string value for indicating which URLs can be handled by the application (e.g. when *myapp.com.artech.myapp://vdir/resource?parameters* is triggered on the device).
+
+#### [Example](#Example)
+
+```
+<CustomURLScheme>myapp.$Main.IOSBundleIdentifier$</CustomURLScheme>
+```
+
+It is highly recommended to use the *$Main.IOSBundleIdentifier$* placeholder as a suffix for identifying the application and avoiding conflicts with other apps that might use the same scheme.
+
+### [MainBridgingHeaderImports](#MainBridgingHeaderImports)
+
+Optional. Allows you to include [bridging headers](https://developer.apple.com/library/content/documentation/Swift/Conceptual/BuildingCocoaApps/MixandMatch.html) (import Objective-C modules to Swift, useful for integrating APIs).
+
+#### [Example](#Example)
+
+```
+<MainBridgingHeaderImports>#import "SomeModuleInObjC.h"</MainBridgingHeaderImports>
+```
+
+### [**DisableBitcode Node**](#DisableBitcode+Node)
+
+Since [GeneXus 16 upgrade 6](https://wiki.genexus.com/commwiki/wiki?43978,,), the generated applications have the [Bitcode](https://help.apple.com/xcode/mac/current/#/devbbdc5ce4f) option enabled (ref.: [SAC#46100](https://www.genexus.com/en/developers/websac?data=46100;)). If you have an application that uses extensions requiring libraries that are not compatible with this option, you can add this node with True value. It disables this option in the generated project.
+
+```
+   <iOS>
+       ...
+        <DisableBitcode>true</DisableBitcode>
+       ...
+    </iOS>
+```
+
+### [**InfoPlist Node**](#InfoPlist+Node)
+
+When developing extensions, the libraries used may require the addition of special keys in the application's Info.plist file. That is the case of libraries such as AdMob or the Facebook SDK.
+
+To provide special keys to be added to the *Info.plist* file, you will have to add a new file with the key-value pairs, and add the following to the extensions library's definition file:
+
+```
+<iOS>
+...
+  <InfoPlistFile>FileName.plist</InfoPlistFile>
+...
+</iOS>
+```
+
+Where "FileName" is the name of the *.plist* file you must create under the iOS Libraries folder. Here, you need to add the key-value pairs (which must have a valid format for the PList extension). Inside it, you may add all the key-value pairs necessary for your extension. For example:
+
+```
+<key>GADApplicationIdentifier</key>
+<string>$Main.Dynamic.AdMob_AppID$</string>
+```
+
+Note that the values can be template variables. Specifically, any property defined by your extension library may be used by prefixing it with "Main.Dynamic".
+
+### [EntitlementsExtensionFile Node](#EntitlementsExtensionFile+Node)
+
+Optional. Reference to a string template file that must produce a PList formatted XML to be added to the *<MainName>.entitlements* file.
+
+#### [Example](#Example)
+
+To add the Health Kit entitlement, add the EntitlementsExtensionFile element inside the iOS node to the .library file:
+
+```
+<iOS platforms="iOS">
+    ...
+    <EntitlementsExtensionFile>MyExtensionLibrary.entitlements</EntitlementsExtensionFile>
+    ... 
+</iOS>
+```
+
+And then, in the file *iOS > MyExtensionLibrary.entitlements*, add the following content:
+
+```
+<key>com.apple.developer.healthkit</key>
+<true/>
+<key>com.apple.developer.healthkit.access</key>
+<array>
+    <string>health-records</string>
+</array>
+```
+
+### [DeploymentTargets Node](#DeploymentTargets+Node)
+
+Optional. Allows specifying the name of an XML file with the required and recommended versions of the iOS, watchOS, and tvOS deployment targets.
+
+This file should be placed in the iOS folder of the extension library, and it should have the following format:
+
+```
+<DeploymentTargets>
+    <Recommended warning="WARNING_MESSAGE">
+        <iOS>VERSION_NUMBER</iOS>
+        <tvOS>VERSION_NUMBER</tvOS>
+        <watchOS>VERSION_NUMBER</watchOS>
+    </Recommended>
+    <Required error="ERROR_MESSAGE">
+        <iOS>VERSION_NUMBER</iOS>
+        <tvOS>VERSION_NUMBER</tvOS>
+        <watchOS>VERSION_NUMBER</watchOS>
+    </Required>
+</DeploymentTargets>
+```
+
+Note that multiple Required and Recommended nodes can be used in order to customize the error or warning messages that will be displayed during the build process depending on the main object's platform and deployment target.
+
+Version strings should use a dot character (".") as a version number separator. Only two number version strings are supported.
+
+## [Notes](#Notes)
+
+* CustomURLScheme and MainBridgingHeaderImports nodes are available as of [GeneXus 15 Upgrade 7](https://wiki.genexus.com/commwiki/wiki?36355,,).
+* InfoPlist Node is available as of [GeneXus 16 upgrade 5](https://wiki.genexus.com/commwiki/wiki?43446,,).
+* EntitlementsExtensionFile Node is available as of [GeneXus 17](https://wiki.genexus.com/commwiki/wiki?46068,,).
+* DeploymentTargets Node is available as of [GeneXus 17 Upgrade 5](https://wiki.genexus.com/commwiki/wiki?48247,,).
+
+## [Availability](#Availability)
+
+Extension Library implementation is supported since [GeneXus 15 Upgrade 6](https://wiki.genexus.com/commwiki/wiki?35908,,).
+
+(1) - Available since [GeneXus 15 upgrade 12](https://wiki.genexus.com/commwiki/wiki?39737,,)
+
+### [See Also](#See+Also)
+
+[Native Mobile Extensions Repository Sample](https://wiki.genexus.com/commwiki/wiki?38277)  
+[SDExtensionsSample](https://github.com/genexuslabs/SDExtensionsSample)
+
+
+|  |
+| --- |
+| **Backlinks** |
+| [Extension Library concept for Extending GeneXus for Native Mobile](https://wiki.genexus.com/commwiki/wiki?33545) | [External Object for iOS Devices](https://wiki.genexus.com/commwiki/wiki?18072) | [HowTo: create an External Object which triggers GeneXus events in iOS](https://wiki.genexus.com/commwiki/wiki?26936) |
+| [Toc:Native Mobile Applications Development](https://wiki.genexus.com/commwiki/wiki?24799) | [Notification Provider API](https://wiki.genexus.com/commwiki/wiki?33687) |
+
+---

@@ -1,0 +1,33 @@
+---
+title: "Line Dash Pattern property (for MapPolygon Theme class)"
+source_id: 47647
+source_url: https://wiki.genexus.com/commwiki/wiki?47647
+genexus_version: "18"
+---
+
+# Line Dash Pattern property (for MapPolygon Theme class)
+
+An array of numbers specifying the dash pattern to use for the path.
+
+### [Scope](#Scope)
+
+**Objects:** [Theme](https://wiki.genexus.com/commwiki/wiki?17876,,)  
+**Generators:** [Apple](https://wiki.genexus.com/commwiki/wiki?14917)
+
+### [Description](#Description)
+
+An array of numbers (separated by spaces) specifying the dash pattern to use for the path. The numbers indicate the lengths (measured in points) of the line segments and gaps in the pattern.
+
+### [Runtime/Design time](#Runtime%2FDesign+time)
+
+This property applies only at design-time.
+
+### [[How to apply changes](https://wiki.genexus.com/commwiki/wiki?17719)](#wiki%3F17719%2CApplying%2Bproperty%2Bchanges+How+to+apply+changes)
+
+|  |
+| --- |
+| To apply the corresponding changes when the property value is configured, execute a [Build with this Only](https://wiki.genexus.com/commwiki/wiki?5693) of the object. |
+
+### [See Also](#See+Also)
+
+[Maps Control Type](https://wiki.genexus.com/commwiki/wiki?15309)

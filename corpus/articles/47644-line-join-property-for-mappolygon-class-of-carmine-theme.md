@@ -1,0 +1,37 @@
+---
+title: "Line Join property (for MapPolygon class of Carmine Theme)"
+source_id: 47644
+source_url: https://wiki.genexus.com/commwiki/wiki?47644
+genexus_version: "18"
+---
+
+# Line Join property (for MapPolygon class of Carmine Theme)
+
+The join style to apply to corners of the path.
+
+### [Values](#Values)
+
+|  |
+| --- |
+| **Bevel** |
+| **Miter** |
+| **Round** |
+
+### [Scope](#Scope)
+
+**Objects:** [Theme](https://wiki.genexus.com/commwiki/wiki?17876,,)  
+**Generators:** [Apple](https://wiki.genexus.com/commwiki/wiki?14917)
+
+### [Runtime/Design time](#Runtime%2FDesign+time)
+
+This property applies only at design-time.
+
+### [[How to apply changes](https://wiki.genexus.com/commwiki/wiki?17719)](#wiki%3F17719%2CApplying%2Bproperty%2Bchanges+How+to+apply+changes)
+
+|  |
+| --- |
+| To apply the corresponding changes when the property value is configured, execute a [Build with this Only](https://wiki.genexus.com/commwiki/wiki?5693) of the object. |
+
+### [See Also](#See+Also)
+
+[Maps Control Type](https://wiki.genexus.com/commwiki/wiki?15309)
