@@ -24,6 +24,11 @@ clean, citable, retrieval-friendly corpus.
   references standalone topic files (`Variables.md`, `database-best-practices.md`,
   etc.) that are **not** in the repo — treat it as an aspirational map, not a file listing.
 - `*.pdf` — GeneXus training PDFs (transactional integrity, DP language, etc.).
+- `.claude/hooks/genexus_grounding.py` + `.claude/settings.json` — a
+  `UserPromptSubmit` hook that, when a prompt looks GeneXus-related, retrieves
+  matching articles from `corpus/index.tsv` and injects a strict
+  "don't invent GeneXus functions; verify against the corpus and cite
+  `source_url`" directive. This is the anti-hallucination guardrail.
 
 ## Common commands
 

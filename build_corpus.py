@@ -150,10 +150,15 @@ def main():
             safe = title.replace("|", "\\|")
             ix.write(f"| {art_id} | [{safe}]({rel}) | [wiki]({url}) |\n")
 
+    # indice plano para busqueda rapida (lo usa el hook de grounding)
+    with open(os.path.join(OUT, "index.tsv"), "w", encoding="utf-8") as tv:
+        for art_id, title, rel, url in sorted(index_rows, key=lambda r: int(r[0])):
+            tv.write(f"{art_id}\t{title}\t{rel}\t{url}\n")
+
     print(f"Enlaces internos reescritos: {n_links}")
     print(f"Escritos {len(index_rows)} .md en {OUT}/articles/")
     print(f"JSONL: {jsonl_path}")
-    print(f"Indice: {OUT}/INDEX.md")
+    print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
 
 
 if __name__ == "__main__":
