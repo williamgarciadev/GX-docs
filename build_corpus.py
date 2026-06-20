@@ -155,10 +155,41 @@ def main():
         for art_id, title, rel, url in sorted(index_rows, key=lambda r: int(r[0])):
             tv.write(f"{art_id}\t{title}\t{rel}\t{url}\n")
 
+    # catalogo de API verificada (funciones/metodos/comandos) extraida de los
+    # titulos "<Nombre> function|method|command". Lo usa el hook para que el
+    # agente no invente nombres que GeneXus no tiene.
+    KIND = {
+        "function": "function", "functions": "function",
+        "method": "method", "methods": "method",
+        "command": "command", "commands": "command",
+    }
+    ident = re.compile(r"^[A-Za-z][A-Za-z0-9_]*$")
+    skip = re.compile(r"^(howto|how to|example|tutorial|sample)\b", re.IGNORECASE)
+    api = {}  # (name, kind) -> url
+    for art_id, title, rel, url in index_rows:
+        if skip.match(title) or "deploy" in title.lower():
+            continue
+        words = title.split()
+        if not words:
+            continue
+        kind = KIND.get(words[-1].lower())
+        if not kind:
+            continue
+        namepart = " ".join(words[:-1]).rstrip(" -–")
+        for cand in re.split(r",| and ", namepart):
+            cand = cand.strip()
+            if ident.match(cand):
+                api.setdefault((cand, kind), url)
+    with open(os.path.join(OUT, "api.tsv"), "w", encoding="utf-8") as af:
+        for (name, kind), url in sorted(api.items(), key=lambda x: (x[0][1], x[0][0].lower())):
+            af.write(f"{name}\t{kind}\t{url}\n")
+    n_api = len(api)
+
     print(f"Enlaces internos reescritos: {n_links}")
     print(f"Escritos {len(index_rows)} .md en {OUT}/articles/")
     print(f"JSONL: {jsonl_path}")
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
+    print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres)")
 
 
 if __name__ == "__main__":

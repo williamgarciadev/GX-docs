@@ -94,6 +94,20 @@ def load_index(path):
     return rows
 
 
+def load_api(path):
+    """Catalogo de API verificada: lista de (name, kind, url)."""
+    api = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 3:
+                    api.append(parts)  # name, kind, url
+    except OSError:
+        pass
+    return api
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -108,7 +122,8 @@ def main():
 
     base = project_dir()
     rows = load_index(os.path.join(base, "corpus", "index.tsv"))
-    if not rows:
+    api = load_api(os.path.join(base, "corpus", "api.tsv"))
+    if not rows and not api:
         return
 
     # tokens de la consulta (+ sinonimos ES->EN), sin stopwords
@@ -145,6 +160,17 @@ def main():
 
     top = scored[:MAX_ARTICLES]
 
+    # nombres de API verificada relevantes a la consulta (match por stem)
+    n_func = sum(1 for _n, k, _u in api if k == "function")
+    n_meth = sum(1 for _n, k, _u in api if k == "method")
+    n_cmd = sum(1 for _n, k, _u in api if k == "command")
+    rel_api = []
+    if qtokens:
+        for name, kind, url in api:
+            if matches(norm(name), qtokens) or norm(name) in qtokens:
+                rel_api.append((name, kind, url))
+    rel_api = rel_api[:12]
+
     lines = [
         "## GROUNDING GeneXus (anti-alucinacion)",
         "",
@@ -154,12 +180,27 @@ def main():
         "",
         "1. NO inventes funciones, metodos, propiedades ni comandos. Usa solo los",
         "   que aparezcan en el corpus.",
-        "2. Verifica cada funcion/comando leyendo el articulo correspondiente en",
-        "   `corpus/articles/` (o busca con grep en esa carpeta / en `corpus/index.tsv`).",
-        "3. Cita el `source_url` del articulo en el que te apoyas.",
-        "4. Si NO encuentras respaldo en el corpus, dilo explicitamente en vez de",
-        "   suponer; no rellenes huecos con APIs de otros lenguajes.",
+        "2. REGLA DURA de API: toda funcion, metodo o comando que uses DEBE figurar",
+        f"   en `corpus/api.tsv` (catalogo verificado: {n_func} funciones, {n_meth}",
+        "   metodos, {0} comandos). Si un nombre NO esta ahi, NO existe en GeneXus".format(n_cmd),
+        "   18: no lo uses. Comprueba con: grep -i \"^<nombre>\\b\" corpus/api.tsv",
+        "3. Verifica la sintaxis exacta leyendo el articulo del nombre en",
+        "   `corpus/articles/` (o el `source_url` que aparece en `corpus/api.tsv`).",
+        "4. Cita el `source_url` del articulo en el que te apoyas.",
+        "5. Si NO encuentras respaldo en el corpus, dilo explicitamente en vez de",
+        "   suponer; no rellenes huecos con APIs de otros lenguajes (no inventes",
+        "   cosas tipo `email.IsValid()` si no estan en el catalogo).",
     ]
+
+    if rel_api:
+        lines += [
+            "",
+            "Nombres de API verificada que podrian aplicar a esta consulta",
+            "(nombre | tipo | fuente):",
+            "",
+        ]
+        for name, kind, url in rel_api:
+            lines.append(f"- {name} | {kind} | {url}")
 
     if top:
         lines += [
