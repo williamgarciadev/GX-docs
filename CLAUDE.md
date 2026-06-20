@@ -47,10 +47,6 @@ clean, citable, retrieval-friendly corpus.
     entries, e.g. `Boolean`, `Structured`, `VarChar`). Same hard rule applies
     to both.
   - `corpus/README.md` — schema and grounding usage rules.
-- `INDICE_MAESTRO_GENEXUS.md` — a hand-curated learning index. Note: it
-  references standalone topic files (`Variables.md`, `database-best-practices.md`,
-  etc.) that are **not** in the repo — treat it as an aspirational map, not a file listing.
-- `*.pdf` — GeneXus training PDFs (transactional integrity, DP language, etc.).
 - `.claude/hooks/genexus_grounding.py` + `.claude/settings.json` — a
   `UserPromptSubmit` hook that, when a prompt looks GeneXus-related, retrieves
   matching articles from `corpus/index.tsv`, the relevant verified names from
