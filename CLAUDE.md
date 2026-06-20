@@ -71,10 +71,11 @@ clean, citable, retrieval-friendly corpus.
 - Both hooks resolve the corpus location-independently so they work in-repo
   **and** installed globally, in this priority order: `$GENEXUS_CORPUS_DIR` →
   `$CLAUDE_CONFIG_DIR`(or `~/.claude`)`/genexus/corpus` → `$CLAUDE_PROJECT_DIR/corpus`.
-- `install_global.sh` (macOS/Linux) / `install_global.ps1` (Windows) — copy the
-  hooks + corpus to `~/.claude/genexus/` and merge both hooks into the **user**
-  `settings.json` so they run in every project. Idempotent; the JSON merge logic
-  is shared in `tools/genexus_install_merge.py`. See `INSTALL.md`.
+- `install_global.sh` (macOS/Linux) / `install_global.ps1` (Windows, or
+  double-click `install_global.bat`) — copy the hooks + corpus to
+  `~/.claude/genexus/` and merge both hooks into the **user** `settings.json` so
+  they run in every project. Idempotent; the JSON merge logic is shared in
+  `tools/genexus_install_merge.py`. See `INSTALL.md`.
 
 ## Common commands
 

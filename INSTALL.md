@@ -25,7 +25,11 @@ $GENEXUS_CORPUS_DIR  ->  ~/.claude/genexus/corpus  ->  <proyecto>/corpus
 
 ## Windows 11 (Claude Code CLI)
 
-Abre **PowerShell** en la carpeta del repo y ejecuta:
+**La forma más fácil:** haz **doble clic** en `install_global.bat`. Lanza el
+instalador en una ventana que se queda abierta para que veas el resultado (no
+necesita permisos de administrador).
+
+O desde **PowerShell** en la carpeta del repo:
 
 ```powershell
 ./install_global.ps1
