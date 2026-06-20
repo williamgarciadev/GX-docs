@@ -82,6 +82,23 @@ def project_dir():
     return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 
 
+def corpus_dir():
+    """Resuelve el directorio del corpus para que el hook funcione tanto dentro
+    de este repo como instalado globalmente. Orden de prioridad:
+      1. $GENEXUS_CORPUS_DIR  (override explicito)
+      2. ~/.claude/genexus/corpus  (instalacion global del usuario)
+      3. $CLAUDE_PROJECT_DIR/corpus  (este proyecto)
+    """
+    env = os.environ.get("GENEXUS_CORPUS_DIR")
+    if env and os.path.isdir(env):
+        return env
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    glob = os.path.join(cfg, "genexus", "corpus")
+    if os.path.isdir(glob):
+        return glob
+    return os.path.join(project_dir(), "corpus")
+
+
 def load_index(path):
     rows = []
     try:
@@ -135,8 +152,8 @@ def main():
     if not any(t in np for t in TRIGGERS):
         return
 
-    base = project_dir()
-    corpus = lambda *p: os.path.join(base, "corpus", *p)
+    cdir = corpus_dir()
+    corpus = lambda *p: os.path.join(cdir, *p)
     rows = load_index(corpus("index.tsv"))
     api = load_api(corpus("api.tsv"))
     props = load_props(corpus("properties.tsv"))
@@ -144,6 +161,12 @@ def main():
     datatypes = load_props(corpus("datatypes.tsv"))
     if not rows and not api:
         return
+
+    # Etiqueta amigable para los textos: "corpus" si el corpus esta dentro del
+    # proyecto actual; la ruta absoluta si es una instalacion global (asi las
+    # referencias a archivos resuelven desde cualquier proyecto).
+    proj = os.path.abspath(project_dir())
+    clabel = "corpus" if os.path.abspath(cdir).startswith(proj + os.sep) else cdir
 
     # tokens de la consulta (+ sinonimos ES->EN), sin stopwords.
     # base_tokens conserva los terminos originales (para la busqueda web).
@@ -219,7 +242,7 @@ def main():
     lines = [
         "## GROUNDING GeneXus (anti-alucinacion)",
         "",
-        "Estas en un repositorio con el corpus OFICIAL de GeneXus 18 en `corpus/`.",
+        f"Tienes disponible el corpus OFICIAL de GeneXus 18 en `{clabel}/`.",
         "Antes de escribir o describir codigo GeneXus (subrutinas, procedimientos,",
         "For Each, Business Components, Data Types, funciones, metodos, comandos):",
         "",
@@ -227,14 +250,14 @@ def main():
         "   Data Types. Usa solo los que aparezcan en el corpus.",
         "2. REGLA DURA: todo nombre que uses DEBE figurar en el catalogo verificado",
         "   correspondiente; si NO esta ahi, NO existe en GeneXus 18, no lo uses:",
-        f"     - funciones/metodos/comandos -> `corpus/api.tsv` ({n_func} func, "
+        f"     - funciones/metodos/comandos -> `{clabel}/api.tsv` ({n_func} func, "
         f"{n_meth} met, {n_cmd} cmd)",
-        f"     - propiedades                -> `corpus/properties.tsv` ({len(props)})",
-        f"     - eventos                    -> `corpus/events.tsv` ({len(events)})",
-        f"     - Data Types                 -> `corpus/datatypes.tsv` ({len(datatypes)})",
-        "   Comprueba con: grep -i \"^<nombre>\\b\" corpus/api.tsv corpus/*.tsv",
+        f"     - propiedades                -> `{clabel}/properties.tsv` ({len(props)})",
+        f"     - eventos                    -> `{clabel}/events.tsv` ({len(events)})",
+        f"     - Data Types                 -> `{clabel}/datatypes.tsv` ({len(datatypes)})",
+        f"   Comprueba con: grep -i \"^<nombre>\\b\" {clabel}/api.tsv {clabel}/*.tsv",
         "3. Verifica la sintaxis exacta leyendo el articulo del nombre en",
-        "   `corpus/articles/` (o el `source_url` del catalogo).",
+        f"   `{clabel}/articles/` (o el `source_url` del catalogo).",
         "4. Cita el `source_url` del articulo en el que te apoyas.",
         "5. Si NO encuentras respaldo en el corpus, dilo explicitamente en vez de",
         "   suponer; no rellenes huecos con APIs de otros lenguajes (no inventes",
@@ -286,7 +309,7 @@ def main():
             "",
         ]
         for _score, art_id, title, rel, url in top:
-            lines.append(f"- {title} -> `corpus/{rel}`  ({url})")
+            lines.append(f"- {title} -> `{clabel}/{rel}`  ({url})")
 
     # FALLBACK: si NO hubo ninguna coincidencia local (ni articulos, ni nombres
     # en los catalogos), no te quedes sin fuente: ve a la wiki OFICIAL en linea.

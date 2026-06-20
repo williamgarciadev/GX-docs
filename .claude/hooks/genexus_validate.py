@@ -53,6 +53,19 @@ def project_dir():
     return os.environ.get("CLAUDE_PROJECT_DIR") or os.getcwd()
 
 
+def corpus_dir():
+    """Resuelve el corpus para funcionar dentro del repo o instalado global.
+    Prioridad: $GENEXUS_CORPUS_DIR -> ~/.claude/genexus/corpus -> proyecto."""
+    env = os.environ.get("GENEXUS_CORPUS_DIR")
+    if env and os.path.isdir(env):
+        return env
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    glob = os.path.join(cfg, "genexus", "corpus")
+    if os.path.isdir(glob):
+        return glob
+    return os.path.join(project_dir(), "corpus")
+
+
 def load_names(path):
     """Devuelve (todos, funciones_y_comandos, metodos) en minusculas."""
     alln, funcs, meths = set(), set(), set()
@@ -101,7 +114,8 @@ def main():
     content = strip_comments(content)
 
     base = project_dir()
-    alln, funcs, meths = load_names(os.path.join(base, "corpus", "api.tsv"))
+    cdir = corpus_dir()
+    alln, funcs, meths = load_names(os.path.join(cdir, "api.tsv"))
     if not alln:
         return
 
@@ -131,7 +145,8 @@ def main():
         "catalogo verificado `corpus/api.tsv`. Revisa cada una: si es API built-in",
         "de GeneXus 18, debe existir en el catalogo (si no esta, NO existe y hay",
         "que corregirla); si es un Procedimiento/SDT/Business Component TUYO, esta",
-        "bien (no se cataloga aqui). Verifica con: grep -i \"^<nombre>\" corpus/api.tsv",
+        "bien (no se cataloga aqui). Verifica con: "
+        f"grep -i \"^<nombre>\" {os.path.join(cdir, 'api.tsv')}",
     ]
     if bad_funcs:
         lines += ["", "Funciones no reconocidas: " + ", ".join(bad_funcs[:15])]
