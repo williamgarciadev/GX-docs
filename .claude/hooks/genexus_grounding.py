@@ -21,14 +21,25 @@ import unicodedata
 MAX_ARTICLES = 8
 
 # Senales de que el prompt es sobre desarrollo GeneXus.
-TRIGGERS = {
-    "genexus", "gx", "subrutina", "subrutinas", "subroutine", "for each",
-    "foreach", "business component", "transaccion", "transaction", "webpanel",
-    "web panel", "procedimiento", "procedure", "proc", "data provider",
-    "dataprovider", "sdt", "domain", "dominio", "rule", "regla", "grid",
-    "atributo", "attribute", "do case", "do while", "parm", "udp", "&",
-    "panel object", "knowledge base", "gam", "data type",
+# Endurecido para instalacion GLOBAL: los triggers de UNA palabra se matchean
+# como TOKEN completo (no substring), para no dispararse dentro de palabras
+# ajenas en proyectos no-GeneXus ("proc" en "proceso", "gx"/"grid"/"domain"
+# embebidos, etc.). Los multi-palabra se matchean como frase (substring) sobre
+# el prompt normalizado. Se quitaron "rule"/"regla"/"grid" (demasiado comunes
+# fuera de GeneXus) y el "&" suelto (se reemplaza por deteccion de variables
+# GeneXus &Nombre en el gate, que no dispara con un ampersand aislado).
+WORD_TRIGGERS = {
+    "genexus", "gx", "subrutina", "subrutinas", "subroutine", "foreach",
+    "transaccion", "transacciones", "transaction", "transactions",
+    "webpanel", "webpanels", "procedimiento", "procedimientos", "procedure",
+    "procedures", "proc", "dataprovider", "sdt", "sdts",
+    "atributo", "atributos", "attribute", "attributes",
+    "parm", "udp", "gam",
 }
+PHRASE_TRIGGERS = (
+    "for each", "business component", "web panel", "data provider",
+    "do case", "do while", "panel object", "knowledge base", "data type",
+)
 
 # Palabras a ignorar al puntuar coincidencias de titulo (ruido o demasiado
 # comunes en el corpus, como "genexus", que apareceria en cientos de titulos).
@@ -147,9 +158,14 @@ def main():
         return  # sin salida -> no se inyecta nada
     prompt = data.get("prompt", "") or ""
     np = norm(prompt)
+    ptoks = set(tokens(prompt))
 
-    # Solo actuar si el prompt huele a GeneXus.
-    if not any(t in np for t in TRIGGERS):
+    # Solo actuar si el prompt huele a GeneXus: token-match para palabras
+    # sueltas, substring para frases, y deteccion de variables GeneXus (&Nombre,
+    # token que empieza por '&' con longitud > 1; un '&' aislado no cuenta).
+    gx_var = any(t.startswith("&") and len(t) > 1 for t in ptoks)
+    if not (gx_var or (ptoks & WORD_TRIGGERS)
+            or any(p in np for p in PHRASE_TRIGGERS)):
         return
 
     cdir = corpus_dir()
@@ -246,9 +262,19 @@ def main():
         "Antes de escribir o describir codigo GeneXus (subrutinas, procedimientos,",
         "For Each, Business Components, Data Types, funciones, metodos, comandos):",
         "",
-        "1. NO inventes funciones, metodos, propiedades, comandos, eventos ni",
-        "   Data Types. Usa solo los que aparezcan en el corpus.",
-        "2. REGLA DURA: todo nombre que uses DEBE figurar en el catalogo verificado",
+        "1. RECUPERACION SEMANTICA (preferida para conceptos/explicaciones/como):",
+        "   si en esta sesion esta disponible el MCP `genexus-docs`, llama",
+        "   `mcp__genexus-docs__search` con tu consulta ANTES de responder. Es",
+        "   busqueda hibrida (BM25 + densa) sobre los PDFs OFICIALES de capacitacion",
+        "   GeneXus + Bantotal; devuelve el texto y la pagina exacta (cita esa",
+        "   pagina). Usa source_filter='genexus' salvo que la consulta sea de",
+        "   Bantotal. Esta fuente es DISTINTA y complementaria al wiki: los",
+        "   articulos del wiki listados abajo se matchean por titulo (palabra),",
+        "   asi que para preguntas conceptuales el MCP suele ser mas preciso. Si el",
+        "   MCP no existe en la sesion, ignora este paso y usa el wiki + catalogos.",
+        "2. NO inventes funciones, metodos, propiedades, comandos, eventos ni Data",
+        "   Types. Usa solo los que aparezcan en el corpus o devuelva el MCP.",
+        "3. REGLA DURA: todo nombre que uses DEBE figurar en el catalogo verificado",
         "   correspondiente; si NO esta ahi, NO existe en GeneXus 18, no lo uses:",
         f"     - funciones/metodos/comandos -> `{clabel}/api.tsv` ({n_func} func, "
         f"{n_meth} met, {n_cmd} cmd)",
@@ -256,12 +282,13 @@ def main():
         f"     - eventos                    -> `{clabel}/events.tsv` ({len(events)})",
         f"     - Data Types                 -> `{clabel}/datatypes.tsv` ({len(datatypes)})",
         f"   Comprueba con: grep -i \"^<nombre>\\b\" {clabel}/api.tsv {clabel}/*.tsv",
-        "3. Verifica la sintaxis exacta leyendo el articulo del nombre en",
+        "4. Verifica la sintaxis exacta leyendo el articulo del nombre en",
         f"   `{clabel}/articles/` (o el `source_url` del catalogo).",
-        "4. Cita el `source_url` del articulo en el que te apoyas.",
-        "5. Si NO encuentras respaldo en el corpus, dilo explicitamente en vez de",
-        "   suponer; no rellenes huecos con APIs de otros lenguajes (no inventes",
-        "   cosas tipo `email.IsValid()` si no estan en el catalogo).",
+        "5. Cita la fuente: `source_url` del wiki y/o pagina del PDF (MCP) en que",
+        "   te apoyas.",
+        "6. Si NO encuentras respaldo en el corpus NI en el MCP, dilo explicitamente",
+        "   en vez de suponer; no rellenes huecos con APIs de otros lenguajes (no",
+        "   inventes cosas tipo `email.IsValid()` si no estan en el catalogo).",
     ]
 
     if rel_api:
