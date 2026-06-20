@@ -44,7 +44,10 @@ clean, citable, retrieval-friendly corpus.
   `datatypes.tsv`), and injects a strict directive (hard rule: any
   function/method/command/property/event/Data Type used must appear in those
   catalogs; verify against the corpus and cite `source_url`). This is the
-  anti-hallucination guardrail.
+  anti-hallucination guardrail. If a GeneXus-related prompt yields **no** local
+  match, the hook injects a fallback telling the agent to verify against the
+  live official wiki (`WebSearch site:wiki.genexus.com <terms>` / `WebFetch`)
+  and cite the real URL — never invent when offline.
 
 ## Common commands
 

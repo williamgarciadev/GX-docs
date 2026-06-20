@@ -39,6 +39,7 @@ STOP = {
     "me", "mi", "se", "su", "lo", "al", "es", "o", "y",
     "create", "make", "need", "want", "please", "porfavor", "object",
     "genexus", "gx", "how", "howto", "use", "using", "que",
+    "uso", "usar", "usando", "utilizar", "utiliza", "como", "cómo",
 }
 
 # Sinonimos ES->EN (los titulos del corpus estan casi todos en ingles).
@@ -144,11 +145,15 @@ def main():
     if not rows and not api:
         return
 
-    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords
+    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords.
+    # base_tokens conserva los terminos originales (para la busqueda web).
     qtokens = set()
+    base_tokens = []
     for t in tokens(prompt):
         if t in STOP or len(t) < 3:
             continue
+        if t not in base_tokens:
+            base_tokens.append(t)
         qtokens.add(t)
         if t in SYNONYMS:
             qtokens.add(SYNONYMS[t])
@@ -282,11 +287,30 @@ def main():
         ]
         for _score, art_id, title, rel, url in top:
             lines.append(f"- {title} -> `corpus/{rel}`  ({url})")
-    else:
+
+    # FALLBACK: si NO hubo ninguna coincidencia local (ni articulos, ni nombres
+    # en los catalogos), no te quedes sin fuente: ve a la wiki OFICIAL en linea.
+    any_local = bool(top or rel_api or rel_props or rel_events or rel_dts)
+    if not any_local:
+        terms = " ".join(base_tokens) or prompt.strip()
         lines += [
             "",
-            "No hubo coincidencia directa por titulo: busca con grep en",
-            "`corpus/articles/` los terminos clave antes de responder.",
+            "### FALLBACK: sin coincidencia en el corpus local",
+            "",
+            "No hubo coincidencia ni en `corpus/articles/` ni en los catalogos",
+            "(api/properties/events/datatypes). Antes de responder, VERIFICA en la",
+            "documentacion OFICIAL en linea (no inventes):",
+            "",
+            f"1. WebSearch:  site:wiki.genexus.com {terms}",
+            "2. Abre con WebFetch la pagina de `wiki.genexus.com` mas pertinente",
+            "   y extrae de ahi funciones/sintaxis/propiedades reales.",
+            "3. Cita la URL real de wiki.genexus.com de la que tomes la informacion.",
+            "4. Si NO hay acceso a la red, DILO explicitamente y no respondas con",
+            "   nombres/sintaxis que no puedas verificar; no rellenes con otros",
+            "   lenguajes ni inventes APIs.",
+            "",
+            "La REGLA DURA sigue vigente: solo usa nombres verificables en el",
+            "corpus local O en wiki.genexus.com.",
         ]
 
     out = {
