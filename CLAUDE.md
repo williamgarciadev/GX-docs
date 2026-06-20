@@ -31,9 +31,16 @@ clean, citable, retrieval-friendly corpus.
     documented inside composite articles, e.g. the RegEx methods
     `IsMatch`/`Matches`/`ReplaceRegEx`/`SplitRegEx`. The hard anti-hallucination
     rule: a function/method/command not in this file does not exist in GeneXus 18.
-  - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1577
-    entries; names are often multi-word, e.g. `Maximum length`). Same hard
-    rule: a property not in this file does not exist in GeneXus 18.
+  - `corpus/properties.tsv` — verified property catalog (`name\turl`, 1880
+    entries; names are often multi-word, e.g. `Maximum length`). Names come
+    from: (a) article titles (`<Name> property|properties`); (b) properties
+    auto-scanned from composite-article bodies, where the author explicitly
+    tags the name with the word "property" in a structured context — either as
+    cross-reference link text (`[<Name> property](wiki-url)`) or as a whole
+    table cell (`| <Name> property |`). The link/cell double-signal keeps it
+    high-precision (free prose is excluded); the link's own target becomes the
+    `source_url`. Same hard rule: a property not in this file does not exist in
+    GeneXus 18.
   - `corpus/events.tsv` — verified event catalog (`name\turl`, 61 entries,
     e.g. `Start`, `IsValid`, `Refresh Grid`).
   - `corpus/datatypes.tsv` — verified Data Type catalog (`name\turl`, 127
@@ -79,7 +86,8 @@ clean, citable, retrieval-friendly corpus.
 `./images/NNNN.*` embeds with a `` `[imagen omitida: wiki id N]` `` marker (the
 images were never included in the dump). It also derives the lookup/catalog
 files (`index.tsv`, `api.tsv`, `properties.tsv`, `events.tsv`, `datatypes.tsv`)
-— including scanning article bodies for documented methods. Re-running fully
+— including scanning article bodies for documented methods, functions, and
+properties (the latter via the tagged link/cell signal). Re-running fully
 regenerates `corpus/`.
 
 ## Conventions

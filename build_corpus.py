@@ -46,6 +46,20 @@ call_method_re = re.compile(r"\.([A-Z][A-Za-z0-9]{2,})\s*\(")
 # capturar celdas de tabla como "**Character (n)**". Se exige ademas que el
 # articulo tenga "Type Returned" (marca de funcion/metodo).
 syntax_func_re = re.compile(r"\*\*([A-Z][A-Za-z0-9_]{2,})\(")
+# Propiedades documentadas DENTRO de articulos compuestos: el autor las etiqueta
+# explicitamente con "property"/"properties" como texto de enlace cruzado
+# "[Nombre property](url-wiki)" o como celda de tabla "| Nombre property |".
+# Doble senal (nombre + etiqueta "property" en contexto estructurado, no prosa
+# libre) = alta precision. El enlace se ejecuta tras reescribir las URLs, por eso
+# se exige dominio absoluto wiki.genexus.com.
+prop_link_re = re.compile(
+    r"\[([A-Z][A-Za-z0-9][A-Za-z0-9 _/-]*?) [Pp]ropert(?:y|ies)\]"
+    r"\((https://wiki\.genexus\.com[^)]*)\)"
+)
+prop_cell_re = re.compile(
+    r"\|\s*\*{0,2}([A-Z][A-Za-z0-9][A-Za-z0-9 _/-]*?) [Pp]ropert(?:y|ies)\*{0,2}\s*\|"
+)
+PROP_STOP = {"all", "advanced", "general", "basic", "other", "others", "none"}
 LITERAL_STOP = {
     "true", "false", "null", "and", "or", "not", "if", "then", "else",
     "while", "for", "each", "do", "case", "when", "sub", "new", "return",
@@ -103,6 +117,7 @@ def main():
     scanned_methods = {}     # name -> url (metodos: encabezado ∩ llamada)
     syntax_funcs = {}        # name -> url (sintaxis "**Name(" + Type Returned)
     method_called_all = set()  # nombres invocados como ".Name(" en todo el corpus
+    scanned_props = {}       # key(lower) -> (name, url) propiedades del cuerpo
 
     with open(jsonl_path, "w", encoding="utf-8") as jf:
         for k, (t_idx, f_idx, art_id) in enumerate(markers):
@@ -143,6 +158,19 @@ def main():
                 for fname in syntax_func_re.findall(body):
                     if fname.lower() not in LITERAL_STOP:
                         syntax_funcs.setdefault(fname, source_url)
+            # propiedades etiquetadas dentro del articulo (enlace cruzado / celda)
+            for pm in prop_link_re.finditer(body):
+                pname, purl = pm.group(1).strip(), pm.group(2)
+                key = pname.lower()
+                if (key not in PROP_STOP and 2 <= len(pname) <= 40
+                        and len(pname.split()) <= 4):
+                    scanned_props.setdefault(key, (pname, purl))
+            for pm in prop_cell_re.finditer(body):
+                pname = pm.group(1).strip()
+                key = pname.lower()
+                if (key not in PROP_STOP and 2 <= len(pname) <= 40
+                        and len(pname.split()) <= 4):
+                    scanned_props.setdefault(key, (pname, source_url))
 
             slug = slugify(title)
             uid = art_id
@@ -263,6 +291,15 @@ def main():
         name = " ".join(words[:-1]).strip(" -–")
         if len(name) >= 2 and prop_name.match(name):
             props.setdefault(name, url)
+    # propiedades auto-capturadas del cuerpo de articulos compuestos (no pisan
+    # las ya presentes por titulo; dedup case-insensitive).
+    titled_lower = {k.lower() for k in props}
+    n_props_scanned = 0
+    for key, (pname, purl) in scanned_props.items():
+        if key not in titled_lower and prop_name.match(pname):
+            props[pname] = purl
+            titled_lower.add(key)
+            n_props_scanned += 1
     with open(os.path.join(OUT, "properties.tsv"), "w", encoding="utf-8") as pf:
         for name, url in sorted(props.items(), key=lambda x: x[0].lower()):
             pf.write(f"{name}\t{url}\n")
@@ -312,7 +349,8 @@ def main():
     print(f"Indice: {OUT}/INDEX.md  +  {OUT}/index.tsv")
     print(f"Catalogo API verificada: {OUT}/api.tsv ({n_api} nombres; "
           f"+{n_scanned_new} metodos, +{n_syntax_new} por sintaxis, del cuerpo)")
-    print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres)")
+    print(f"Catalogo propiedades: {OUT}/properties.tsv ({n_props} nombres; "
+          f"+{n_props_scanned} del cuerpo)")
     print(f"Catalogo eventos: {OUT}/events.tsv ({n_events} nombres)")
     print(f"Catalogo Data Types: {OUT}/datatypes.tsv ({n_dts} nombres)")
 
