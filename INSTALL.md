@@ -23,7 +23,43 @@ $GENEXUS_CORPUS_DIR  ->  ~/.claude/genexus/corpus  ->  <proyecto>/corpus
 
 ---
 
-## Windows 11 (Claude Code CLI)
+## Paso 1 — Requisitos y clonar el repo
+
+Necesitas **Git** y **Python 3** instalados (el corpus ya viene versionado, no
+hay que construir nada).
+
+### Windows 11
+
+1. Instala **Git for Windows**: https://git-scm.com/download/win (incluye Git Bash).
+2. Instala **Python 3**: https://www.python.org/downloads/windows/ — en el
+   instalador marca **"Add python.exe to PATH"**.
+3. Cierra y reabre la terminal para que el PATH se actualice. Comprueba:
+   ```powershell
+   git --version
+   python --version
+   ```
+4. Clona el repo (en la carpeta donde guardes tus proyectos, p. ej. tu usuario):
+   ```powershell
+   cd %USERPROFILE%
+   git clone -b claude/claude-md-docs-h2p9l0 https://github.com/williamgarciadev/GX-docs.git
+   cd GX-docs
+   ```
+   > Cuando estos cambios estén en `main`, basta con
+   > `git clone https://github.com/williamgarciadev/GX-docs.git` (sin `-b`).
+
+### macOS / Linux
+
+```bash
+git clone -b claude/claude-md-docs-h2p9l0 https://github.com/williamgarciadev/GX-docs.git
+cd GX-docs
+```
+
+Ya dentro de la carpeta `GX-docs`, continúa con el **Paso 2** (instalar) según tu
+sistema.
+
+---
+
+## Paso 2 (Windows 11) — Instalar
 
 **La forma más fácil:** haz **doble clic** en `install_global.bat`. Lanza el
 instalador en una ventana que se queda abierta para que veas el resultado (no
@@ -49,7 +85,7 @@ Ver qué haría sin escribir nada: `./install_global.ps1 -DryRun`
 **Alternativa con Git Bash / WSL:** si prefieres bash, puedes usar el script
 `.sh` (sección siguiente) desde Git Bash o una distro WSL.
 
-## macOS / Linux
+## Paso 2 (macOS / Linux) — Instalar
 
 ```bash
 ./install_global.sh           # instala/actualiza
@@ -58,7 +94,7 @@ Ver qué haría sin escribir nada: `./install_global.ps1 -DryRun`
 
 ---
 
-## Paso final (obligatorio)
+## Paso 3 (obligatorio) — Activar los hooks
 
 Tras instalar, abre Claude Code y ejecuta **`/hooks`** una vez (o reinicia la
 CLI) para que cargue los hooks recién añadidos a tu settings de usuario. A
