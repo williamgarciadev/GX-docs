@@ -104,6 +104,12 @@ below for how it differs from the GeneXus corpus and its confidence levels.
   — **not** a wiki.genexus.com URL — so the grounding hook and the agent never
   cite them as if they were official documentation. Idempotent: delete a file
   from `extra_docs/` and its generated article disappears on the next run.
+  If a document has 2+ `## ` headings (a "cheatsheet" covering many topics
+  under one title), it's split into one article per section (title =
+  `"<doc title> — <heading>"`) plus an intro article for anything before the
+  first heading — otherwise a long multi-topic doc would be nearly
+  unfindable, since the grounding hook ranks articles by title match, not
+  full-body search.
 - `ingest_docs.py` — the ingestion script above. HTML is converted to plain
   markdown-ish text with a small stdlib-only `html.parser` based converter (no
   external deps); `.md` files are used as-is.
@@ -122,15 +128,20 @@ below for how it differs from the GeneXus corpus and its confidence levels.
   match, the hook injects a fallback telling the agent to verify against the
   live official wiki (`WebSearch site:wiki.genexus.com <terms>` / `WebFetch`)
   and cite the real URL — never invent when offline.
-  The same hook also detects Bantotal-related prompts (keywords like
-  "bantotal", "9 campos", or a bare table code like `FST017`) independently
-  of the GeneXus triggers, and injects an equivalent directive sourced from
-  `corpus_bantotal/tables.tsv`, `xpz_objects.tsv`, and `index.tsv` (articles
-  ingested via `ingest_docs.py`) — with no web fallback, since there's no
-  public wiki; the fallback there is to say so explicitly and point at
-  `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` or ask the user for the
-  relevant `.xpz`. Article ranking (`rank_articles`) is shared between the
-  GeneXus and Bantotal sections.
+  The same hook also detects Bantotal-related prompts independently of the
+  GeneXus triggers: a fixed keyword list (`BANTOTAL_TRIGGERS`: "bantotal",
+  "9 campos", ...), a bare table code like `FST017`, or — since a fixed list
+  always lags what gets ingested — a **dynamic** check (`bantotal_dynamic_vocab`)
+  that matches the prompt against words actually present in
+  `corpus_bantotal/index.tsv` titles and `tables.tsv` names/notes. This is
+  what lets a prompt about "ACH" or "garantías" trigger grounding once an
+  ingested article covers that topic, without hand-maintaining the keyword
+  list. It then injects a directive sourced from `corpus_bantotal/tables.tsv`,
+  `xpz_objects.tsv`, and `index.tsv` (articles ingested via `ingest_docs.py`)
+  — with no web fallback, since there's no public wiki; the fallback there is
+  to say so explicitly and point at `bantotal_sources/MDU-99000-GL-V3R1.11.pdf`
+  or ask the user for the relevant `.xpz`. Article ranking (`rank_articles`)
+  is shared between the GeneXus and Bantotal sections.
 - `.claude/hooks/genexus_validate.py` — a `PostToolUse` (Write|Edit) hook that,
   after GeneXus code is written, extracts function/method calls and warns
   (non-blocking) about any name not in `corpus/api.tsv`. It self-skips files

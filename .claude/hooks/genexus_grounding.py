@@ -502,6 +502,23 @@ def build_bantotal_lines(prompt, qtokens, base_tokens):
     return lines
 
 
+def bantotal_dynamic_vocab():
+    """Vocabulario dinamico de Bantotal: palabras significativas de los
+    titulos ya ingeridos (index.tsv) y de tables.tsv (nombre/nota), para
+    detectar prompts sobre temas reales del corpus (p.ej. "ACH", "garantias",
+    "CDT") que no estan en la lista fija BANTOTAL_TRIGGERS. Crece solo con lo
+    que se va ingiriendo, sin mantenimiento manual. Los archivos son chicos
+    (catalogo Bantotal, no el corpus GeneXus completo); costo despreciable."""
+    bdir = bantotal_dir()
+    bt = lambda *p: os.path.join(bdir, *p)
+    vocab = set()
+    for _id, title, _rel, _url in load_index(bt("index.tsv")):
+        vocab |= set(tokens(title))
+    for _code, name, _family, note, _source in load_tables(bt("tables.tsv")):
+        vocab |= set(tokens(name)) | set(tokens(note))
+    return {w for w in vocab if len(w) >= 3 and w not in STOP}
+
+
 def main():
     try:
         data = json.load(sys.stdin)
@@ -510,15 +527,9 @@ def main():
     prompt = data.get("prompt", "") or ""
     np = norm(prompt)
 
-    want_gx = any(t in np for t in TRIGGERS)
-    want_bt = any(t in np for t in BANTOTAL_TRIGGERS) or bool(
-        bantotal_table_code_re.search(prompt)
-    )
-    if not want_gx and not want_bt:
-        return
-
-    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords.
-    # base_tokens conserva los terminos originales (para la busqueda web).
+    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords. Se calculan
+    # antes de decidir los triggers porque el trigger dinamico de Bantotal
+    # los necesita. base_tokens conserva los terminos originales (busqueda web).
     qtokens = set()
     base_tokens = []
     for t in tokens(prompt):
@@ -529,6 +540,16 @@ def main():
         qtokens.add(t)
         if t in SYNONYMS:
             qtokens.add(SYNONYMS[t])
+
+    want_gx = any(t in np for t in TRIGGERS)
+    want_bt = any(t in np for t in BANTOTAL_TRIGGERS) or bool(
+        bantotal_table_code_re.search(prompt)
+    )
+    if not want_bt and qtokens:
+        vocab = bantotal_dynamic_vocab()
+        want_bt = any(matches(q, vocab) for q in qtokens)
+    if not want_gx and not want_bt:
+        return
 
     lines = []
     if want_gx:

@@ -12,14 +12,21 @@ Que hace por cada archivo:
     1. Si es .html, lo convierte a texto/markdown simple (sin dependencias
        externas: usa html.parser de la stdlib).
     2. Extrae titulo (primer H1/<h1>, o el nombre de archivo si no hay).
-    3. Le asigna un id sintetico >= 9000001 (los ids de wiki de GeneXus llegan
-       a ~61122; Bantotal no usa ids numericos hoy) para que nunca choque con
-       un id real.
-    4. Escribe el articulo en corpus/articles/ o corpus_bantotal/articles/ con
+    3. Si el documento tiene 2+ encabezados `## ` (tipo "chuleta" con varias
+       secciones bajo un titulo generico), lo PARTE en un articulo por
+       seccion (titulo = "<titulo doc> — <encabezado seccion>") mas un
+       articulo de intro si hay contenido antes de la primera seccion. Sin
+       esto, un documento largo con muchos temas quedaria casi invisible
+       para consultas puntuales: el hook de grounding rankea articulos por
+       coincidencia de TITULO, no de cuerpo completo.
+    4. Le asigna un id sintetico >= 9000001 por cada articulo generado (los
+       ids de wiki de GeneXus llegan a ~61122; Bantotal no usa ids numericos
+       hoy) para que nunca choque con un id real.
+    5. Escribe el articulo en corpus/articles/ o corpus_bantotal/articles/ con
        frontmatter, marcando `source_url: local:extra_docs/<target>/<archivo>`
        -- NO es una URL de wiki.genexus.com; es tu documento, no lo cites como
        si fuera oficial.
-    5. Reconstruye el `index.tsv` correspondiente: conserva las filas
+    6. Reconstruye el `index.tsv` correspondiente: conserva las filas
        existentes (wiki/derivadas) y reemplaza solo el bloque de articulos
        "extra" (ids >= 9000001) con el resultado de esta corrida.
 
@@ -148,6 +155,31 @@ def extract_title(text, fallback):
     return fallback
 
 
+H2_RE = re.compile(r"^##\s+(.+?)\s*$", re.MULTILINE)
+MIN_SECTIONS_TO_SPLIT = 2
+
+
+def split_sections(body):
+    """Si el documento tiene >= MIN_SECTIONS_TO_SPLIT encabezados H2, lo parte
+    en (intro, [(heading, section_body), ...]) para que cada seccion se pueda
+    ingerir como articulo propio (titulo especifico -> mejor recall en el
+    ranking por titulo del hook de grounding, que no mira el cuerpo). Un
+    documento tipo "chuleta" con 30 secciones bajo un solo titulo generico
+    quedaria casi invisible para consultas puntuales si no se parte asi.
+    Si hay menos de 2 H2, devuelve (body, []) sin partir."""
+    matches = list(H2_RE.finditer(body))
+    if len(matches) < MIN_SECTIONS_TO_SPLIT:
+        return body, []
+    intro = body[: matches[0].start()].strip()
+    sections = []
+    for i, m in enumerate(matches):
+        start = m.start()
+        end = matches[i + 1].start() if i + 1 < len(matches) else len(body)
+        heading = m.group(1).strip()
+        sections.append((heading, body[start:end].strip()))
+    return intro, sections
+
+
 def load_index(path):
     rows = []
     try:
@@ -178,7 +210,8 @@ def ingest_target(name, cfg):
     )
 
     new_rows = []
-    for i, path in enumerate(files):
+    next_id = BASE_ID
+    for path in files:
         fname = os.path.basename(path)
         with open(path, encoding="utf-8", errors="replace") as f:
             raw = f.read()
@@ -188,26 +221,42 @@ def ingest_target(name, cfg):
         else:
             body = raw.strip()
 
-        art_id = BASE_ID + i
-        title = extract_title(body, os.path.splitext(fname)[0].replace("-", " ").replace("_", " "))
-        slug = slugify(title)
-        rel = f"articles/{art_id}-{slug}.md"
-        out_path = os.path.join(out_dir, f"{art_id}-{slug}.md")
+        doc_title = extract_title(body, os.path.splitext(fname)[0].replace("-", " ").replace("_", " "))
         source_label = f"local:{src_dir.replace(os.sep, '/')}/{fname}"
+        intro, sections = split_sections(body)
 
-        frontmatter = (
-            "---\n"
-            f"title: \"{title}\"\n"
-            f"source_id: {art_id}\n"
-            f"source_url: \"{source_label}\"\n"
-            f"{cfg['extra_note']}"
-            "ingested_by: ingest_docs.py\n"
-            "---\n\n"
-        )
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(frontmatter + body + "\n")
+        # documento (title, content) a generar: si hay secciones H2, uno por
+        # seccion (mas la intro si tiene contenido propio mas alla del H1);
+        # si no, el documento entero como un unico articulo.
+        pieces = []
+        if sections:
+            if intro and len(intro.splitlines()) > 3:
+                pieces.append((doc_title, intro))
+            for heading, section_body in sections:
+                pieces.append((f"{doc_title} — {heading}", section_body))
+        else:
+            pieces.append((doc_title, body))
 
-        new_rows.append([str(art_id), title, rel, source_label])
+        for title, content in pieces:
+            art_id = next_id
+            next_id += 1
+            slug = slugify(title)
+            rel = f"articles/{art_id}-{slug}.md"
+            out_path = os.path.join(out_dir, f"{art_id}-{slug}.md")
+
+            frontmatter = (
+                "---\n"
+                f"title: \"{title}\"\n"
+                f"source_id: {art_id}\n"
+                f"source_url: \"{source_label}\"\n"
+                f"{cfg['extra_note']}"
+                "ingested_by: ingest_docs.py\n"
+                "---\n\n"
+            )
+            with open(out_path, "w", encoding="utf-8") as f:
+                f.write(frontmatter + content + "\n")
+
+            new_rows.append([str(art_id), title, rel, source_label])
 
     # reconstruir index.tsv: conservar filas no-"extra" (id < BASE_ID),
     # reemplazar el bloque extra con el resultado de esta corrida.
