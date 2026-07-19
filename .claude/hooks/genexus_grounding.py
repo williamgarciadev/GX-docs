@@ -442,10 +442,12 @@ def build_bantotal_lines(prompt, qtokens, base_tokens):
         "   explicitamente y sugiere verificar contra",
         f"   `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` (fuente primaria) en vez",
         "   de inventarlo.",
-        "4. El patron de 9 campos (PGCOD + 8 campos con prefijo de 2 letras) es",
-        f"   una heuristica observada, no una regla universal: revisa "
-        f"`{blabel}/nine_fields.md` y confirma contra la tabla puntual antes de",
-        "   asumir que aplica.",
+        "4. El 'patron de 9 campos' de Bantotal NO tiene una definicion unica",
+        f"   confirmada: `{blabel}/nine_fields.md` documenta una version, pero",
+        "   pueden existir articulos ingeridos (ver mas abajo) con OTRA version",
+        "   en conflicto (nombres de campo distintos). Si respondes sobre esto,",
+        "   dilo explicitamente en vez de asumir que una sola version es 'la",
+        "   correcta'; confirma contra la tabla puntual en el PDF si importa.",
     ]
 
     if rel_tables:

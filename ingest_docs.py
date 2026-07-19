@@ -36,6 +36,7 @@ import glob
 import os
 import re
 import sys
+import unicodedata
 from html.parser import HTMLParser
 
 BASE_ID = 9_000_001
@@ -57,7 +58,11 @@ TARGETS = {
 
 
 def slugify(text, maxlen=60):
-    s = text.lower()
+    # normaliza tildes/enies (comunes en documentos en espanol, a diferencia
+    # de los titulos del wiki de GeneXus, casi todos en ingles) antes de
+    # descartar todo lo que no sea [a-z0-9], para no perder letras completas.
+    s = unicodedata.normalize("NFD", text.lower())
+    s = "".join(c for c in s if unicodedata.category(c) != "Mn")
     s = re.sub(r"[^a-z0-9]+", "-", s)
     s = s.strip("-")
     if len(s) > maxlen:

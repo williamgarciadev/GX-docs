@@ -50,6 +50,16 @@ idempotentes.
   no una regla universal documentada campo por campo en el manual — presenta
   el patrón como tal (probable, no garantizado) salvo que lo confirmes contra
   una tabla puntual.
+- **⚠️ Conflicto conocido sobre "los 9 campos"**: `nine_fields.md` documenta
+  una versión (`PGCOD, XXMOD, XXSUC, XXMDA, XXPAP, XXCTA, XXOPER, XXSBOP,
+  XXTOPE`). Un artículo ingerido con `ingest_docs.py` (originado en la skill
+  `bantotal-table-extractor`) documenta OTRA versión distinta (`CODOPER,
+  FECDESDE, CODSUCU, CORRGRAL, FECACTU, HORACTU, USUACTU, FECDACTU, VERCFG`).
+  Son dos análisis secundarios independientes que no coinciden — ninguno sale
+  de una extracción literal del PDF. Si vas a responder sobre esto, decilo
+  explícitamente en vez de elegir una versión al azar; verificá contra
+  `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` para la tabla puntual que te
+  importe.
 - **Cita la fuente.** Cada fila de `tables.tsv` trae su `source` (archivo y
   línea del análisis); cada fila de `xpz_objects.tsv` trae el `.xpz` de
   origen; cada fila de `index.tsv` trae un `local:...` que apunta al

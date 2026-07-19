@@ -1,6 +1,19 @@
 # 🔑 Patrón de Nueve Campos Clave en Bantotal
 *Análisis del diseño estándar de llaves primarias*
 
+> **⚠️ AVISO DE CONFLICTO ENTRE FUENTES**: existe OTRO análisis derivado (no
+> este) que describe un patrón de "9 campos" distinto para Bantotal, con
+> nombres de campo diferentes (`CODOPER, FECDESDE, CODSUCU, CORRGRAL,
+> FECACTU, HORACTU, USUACTU, FECDACTU, VERCFG` — ver artículo ingerido con
+> `ingest_docs.py` cuyo `source_url` original es
+> `bantotal-table-extractor/references/9-campos-clave.md`). Ninguno de los
+> dos viene de una extracción literal del PDF oficial página por página:
+> son dos análisis secundarios independientes que NO coinciden. Si estás
+> respondiendo sobre "el patrón de 9 campos" de Bantotal, decilo
+> explícitamente — no asumas que uno de los dos es "el correcto" sin
+> verificar contra `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` para la
+> tabla puntual que te interese.
+
 ## 🎯 Descubrimiento del Patrón
 
 Tienes razón al identificar este patrón fundamental. En Bantotal existe una **estructura consistente de 9 campos base** que se repite en todas las tablas transaccionales, solo cambiando los **prefijos de 2 letras** según el contexto de la tabla.
