@@ -31,6 +31,12 @@ idempotentes.
 - `Analisis_Modelo_Datos_Bantotal.md` — análisis técnico derivado del manual
   (118 páginas, 80 tablas). Fuente de `tables.tsv`.
 - `Patron_9_Campos_Bantotal.md` — fuente de `nine_fields.md`.
+- `MDU-10304-CO-V3R1.2-Certificado-Deposito-a-Termino.pdf` — manual oficial
+  del módulo de Certificados de Depósito a Término (CDT) (**FUENTE
+  PRIMARIA**; mismo aviso de licencia que el MDU-99000). Su texto extraído
+  y limpiado (`pdftotext -layout` + remoción de encabezados/pies repetidos,
+  sin parafrasear) se ingirió como artículos vía `ingest_docs.py` — ver
+  `extra_docs/bantotal/MDU-10304-CO_Certificado_Deposito_a_Termino.md`.
 
 ## Cómo usarlo para NO alucinar
 
