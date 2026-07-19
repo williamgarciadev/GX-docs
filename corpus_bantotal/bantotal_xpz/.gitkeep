@@ -1,0 +1,3 @@
+Agrega aqui tus archivos .xpz (exports de GeneXus de tu KB Bantotal) y corre
+`python3 scan_bantotal_xpz.py` desde la raiz del repo para catalogar sus
+objetos en corpus_bantotal/xpz_objects.tsv.

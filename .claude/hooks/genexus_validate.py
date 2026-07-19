@@ -5,6 +5,11 @@ catalogo verificado `corpus/api.tsv`. Si encuentra llamadas a funciones/metodos
 que NO existen en el catalogo, avisa (no bloquea) para que el agente las revise
 y no deje codigo con API alucinada.
 
+Tambien valida, por separado, nombres de tabla estilo Bantotal (FST/FSD/FSR/
+FSH/FSN/FSE/FSX/FSA/FSI/FSM + 3 digitos) contra `corpus_bantotal/tables.tsv`:
+si aparece un codigo que no figura ahi, avisa (tampoco bloquea: el catalogo es
+derivado y no exhaustivo, puede ser una tabla real que falta en el catalogo).
+
 Es advisory por diseno: las llamadas a procedimientos, SDT y Business Components
 del usuario tambien apareceran como "no reconocidas" (no estan en el catalogo de
 built-ins), por eso el mensaje lo aclara y NO bloquea la escritura.
@@ -25,6 +30,9 @@ gx_signal_re = re.compile("|".join(GX_SIGNALS), re.IGNORECASE)
 # Llamadas estilo funcion  Nombre(   y estilo metodo  .Nombre(
 func_call_re = re.compile(r"(?<![.\w])([A-Za-z][A-Za-z0-9_]*)\s*\(")
 meth_call_re = re.compile(r"\.([A-Za-z][A-Za-z0-9_]*)\s*\(")
+
+# Codigo de tabla estilo Bantotal (FST017, FSD010, ...) dentro del codigo.
+bantotal_code_re = re.compile(r"\b(FS[A-Z]\d{3})\b")
 
 # Comentarios GeneXus: bloque /* ... */ y linea // ... . Se eliminan ANTES de
 # buscar llamadas para no marcar prosa de comentarios (p. ej. "esperadas (...")
@@ -66,6 +74,33 @@ def corpus_dir():
     return os.path.join(project_dir(), "corpus")
 
 
+def bantotal_dir():
+    """Resuelve corpus_bantotal/, mismo esquema que corpus_dir():
+    $BANTOTAL_CORPUS_DIR -> ~/.claude/genexus/corpus_bantotal -> proyecto."""
+    env = os.environ.get("BANTOTAL_CORPUS_DIR")
+    if env and os.path.isdir(env):
+        return env
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    glob = os.path.join(cfg, "genexus", "corpus_bantotal")
+    if os.path.isdir(glob):
+        return glob
+    return os.path.join(project_dir(), "corpus_bantotal")
+
+
+def load_table_codes(path):
+    """Codigos de tabla Bantotal verificados (columna 1 de tables.tsv)."""
+    codes = set()
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                p = line.rstrip("\n").split("\t")
+                if p and p[0]:
+                    codes.add(p[0].upper())
+    except OSError:
+        pass
+    return codes
+
+
 def load_names(path):
     """Devuelve (todos, funciones_y_comandos, metodos) en minusculas."""
     alln, funcs, meths = set(), set(), set()
@@ -105,7 +140,12 @@ def main():
     # No validar los propios ficheros del corpus/repo (estan llenos de
     # nombres de API legitimos en prosa) ni archivos sin senales GeneXus.
     norm_path = path.replace("\\", "/")
-    if "/corpus/" in norm_path or norm_path.endswith(".tsv"):
+    if (
+        "/corpus/" in norm_path
+        or "/corpus_bantotal/" in norm_path
+        or "/bantotal_sources/" in norm_path
+        or norm_path.endswith(".tsv")
+    ):
         return
     if not gx_signal_re.search(content):
         return
@@ -116,8 +156,6 @@ def main():
     base = project_dir()
     cdir = corpus_dir()
     alln, funcs, meths = load_names(os.path.join(cdir, "api.tsv"))
-    if not alln:
-        return
 
     # candidatos: ultima aparicion gana; preservar nombre original para mostrar
     func_cands, meth_cands = {}, {}
@@ -132,22 +170,34 @@ def main():
     # Para validar EXISTENCIA del nombre, ambas formas se comparan contra todo
     # el catalogo: la distincion funcion/metodo es de estilo, no de existencia
     # (muchas "funciones" se invocan como metodo sobre tipos de dato).
-    bad_funcs = sorted({orig for low, orig in func_cands.items() if low not in alln})
-    bad_meths = sorted({orig for low, orig in meth_cands.items() if low not in alln})
+    bad_funcs, bad_meths = [], []
+    if alln:
+        bad_funcs = sorted({orig for low, orig in func_cands.items() if low not in alln})
+        bad_meths = sorted({orig for low, orig in meth_cands.items() if low not in alln})
 
-    if not bad_funcs and not bad_meths:
+    # Codigos de tabla Bantotal (FST017, FSD010, ...) que no figuran en el
+    # catalogo derivado. Solo se evalua si el catalogo existe y no esta vacio.
+    bdir = bantotal_dir()
+    bt_codes = load_table_codes(os.path.join(bdir, "tables.tsv"))
+    bad_bt = []
+    if bt_codes:
+        found = {m.group(1).upper() for m in bantotal_code_re.finditer(content)}
+        bad_bt = sorted(found - bt_codes)
+
+    if not bad_funcs and not bad_meths and not bad_bt:
         return  # todo verificado -> silencioso
 
-    lines = [
-        "## Validacion GeneXus (anti-alucinacion)",
-        "",
-        f"En `{os.path.relpath(path, base)}` hay llamadas que NO figuran en el",
-        "catalogo verificado `corpus/api.tsv`. Revisa cada una: si es API built-in",
-        "de GeneXus 18, debe existir en el catalogo (si no esta, NO existe y hay",
-        "que corregirla); si es un Procedimiento/SDT/Business Component TUYO, esta",
-        "bien (no se cataloga aqui). Verifica con: "
-        f"grep -i \"^<nombre>\" {os.path.join(cdir, 'api.tsv')}",
-    ]
+    lines = ["## Validacion GeneXus (anti-alucinacion)"]
+    if bad_funcs or bad_meths:
+        lines += [
+            "",
+            f"En `{os.path.relpath(path, base)}` hay llamadas que NO figuran en el",
+            "catalogo verificado `corpus/api.tsv`. Revisa cada una: si es API built-in",
+            "de GeneXus 18, debe existir en el catalogo (si no esta, NO existe y hay",
+            "que corregirla); si es un Procedimiento/SDT/Business Component TUYO, esta",
+            "bien (no se cataloga aqui). Verifica con: "
+            f"grep -i \"^<nombre>\" {os.path.join(cdir, 'api.tsv')}",
+        ]
     if bad_funcs:
         lines += ["", "Funciones no reconocidas: " + ", ".join(bad_funcs[:15])]
     if bad_meths:
@@ -156,10 +206,20 @@ def main():
             "Metodos no reconocidos (a menudo metodos de SDT/BC del usuario, "
             "confirma): " + ", ".join(bad_meths[:15]),
         ]
+    if bad_bt:
+        lines += [
+            "",
+            f"Codigos de tabla Bantotal en `{os.path.relpath(path, base)}` que NO",
+            f"figuran en `{os.path.join(bdir, 'tables.tsv')}` (catalogo derivado, no",
+            "exhaustivo): puede ser una tabla real que falta en el catalogo, o un",
+            "nombre inventado; verifica contra "
+            "`bantotal_sources/MDU-99000-GL-V3R1.11.pdf`: "
+            + ", ".join(bad_bt[:15]),
+        ]
 
     out = {
         "systemMessage": "Validacion GeneXus: revisa nombres no catalogados ("
-        + ", ".join((bad_funcs + bad_meths)[:8]) + ")",
+        + ", ".join((bad_funcs + bad_meths + bad_bt)[:8]) + ")",
         "hookSpecificOutput": {
             "hookEventName": "PostToolUse",
             "additionalContext": "\n".join(lines),

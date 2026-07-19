@@ -9,6 +9,12 @@ they answer with verifiable facts instead of hallucinating. The source is a full
 dump of the official wiki (wiki.genexus.com); the repo turns that dump into a
 clean, citable, retrieval-friendly corpus.
 
+It also carries a second, smaller corpus for **Bantotal** (a banking core
+built on top of GeneXus): `corpus_bantotal/`. Unlike GeneXus, Bantotal has no
+public wiki, so that corpus is derived from a proprietary manual plus
+(optionally) the user's own `.xpz` KB exports — see the "Bantotal" section
+below for how it differs from the GeneXus corpus and its confidence levels.
+
 ## Layout
 
 - `genexus_documentation.md` — the raw 16 MB / ~386k-line dump (5.433 articles,
@@ -47,6 +53,43 @@ clean, citable, retrieval-friendly corpus.
     entries, e.g. `Boolean`, `Structured`, `VarChar`). Same hard rule applies
     to both.
   - `corpus/README.md` — schema and grounding usage rules.
+- `bantotal_sources/` — raw Bantotal material (**source of truth for the
+  Bantotal corpus; do not edit by hand**):
+  - `MDU-99000-GL-V3R1.11.pdf` — the official Bantotal data-model manual
+    (primary source; committed with the user's explicit authorization —
+    it carries an "internal-use" license, be mindful before further
+    redistributing it).
+  - `Analisis_Modelo_Datos_Bantotal.md` — a derived technical analysis of the
+    manual (118 pages, ~80 tables); source of `corpus_bantotal/tables.tsv`.
+  - `Patron_9_Campos_Bantotal.md` — source of `corpus_bantotal/nine_fields.md`
+    (the observed 9-base-field key pattern).
+- `build_bantotal_corpus.py` — regenerates `corpus_bantotal/{tables,families}.tsv`
+  and `nine_fields.md` from `bantotal_sources/`. Idempotent.
+- `scan_bantotal_xpz.py` — regenerates `corpus_bantotal/xpz_objects.tsv` by
+  parsing any `.xpz` files under `corpus_bantotal/bantotal_xpz/`. Idempotent;
+  a no-op (empty output) until the user adds real KB exports there.
+- `corpus_bantotal/` — generated Bantotal output (do not edit by hand):
+  - `corpus_bantotal/tables.tsv` — `code\tname\tfamily\tnote\tsource` catalog
+    of ~70 Bantotal tables (`FST017`, `FSD010`, ...). **Derived** from the
+    secondary analysis, not a literal page-by-page PDF extraction — treat it
+    as "this table exists, here's its purpose," not as an exhaustive or
+    exact field list. For exact field structure, read
+    `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` directly.
+  - `corpus_bantotal/families.tsv` — table-prefix taxonomy (`FST`, `FSD`,
+    `FSR`, `FSH`, `FSN`, ...): `prefix\tcategory\tpurpose`.
+  - `corpus_bantotal/nine_fields.md` — the 9-base-field key pattern
+    (`PGCOD` + 8 fields with a 2-letter context prefix). Presented as an
+    observed heuristic, not a guaranteed rule — confirm against the specific
+    table before assuming it applies.
+  - `corpus_bantotal/xpz_objects.tsv` — `name\ttype\tmodule\tattributes_or_vars\tsource_xpz`
+    catalog of objects (Transaction/Procedure/SDT/...) scanned from the
+    user's own `.xpz` KB exports. **Highest-confidence** Bantotal source —
+    it comes from real KB XML, not prose — but empty until the user drops
+    `.xpz` files into `corpus_bantotal/bantotal_xpz/` and runs
+    `scan_bantotal_xpz.py`.
+  - `corpus_bantotal/bantotal_xpz/` — drop `.xpz` KB exports here.
+  - `corpus_bantotal/README.md` — schema, confidence levels, and grounding
+    usage rules for the Bantotal corpus.
 - `INDICE_MAESTRO_GENEXUS.md` — a hand-curated learning index. Note: it
   references standalone topic files (`Variables.md`, `database-best-practices.md`,
   etc.) that are **not** in the repo — treat it as an aspirational map, not a file listing.
@@ -62,15 +105,30 @@ clean, citable, retrieval-friendly corpus.
   match, the hook injects a fallback telling the agent to verify against the
   live official wiki (`WebSearch site:wiki.genexus.com <terms>` / `WebFetch`)
   and cite the real URL — never invent when offline.
+  The same hook also detects Bantotal-related prompts (keywords like
+  "bantotal", "9 campos", or a bare table code like `FST017`) independently
+  of the GeneXus triggers, and injects an equivalent directive sourced from
+  `corpus_bantotal/tables.tsv` and `xpz_objects.tsv` — with no web fallback,
+  since there's no public wiki; the fallback there is to say so explicitly
+  and point at `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` or ask the user
+  for the relevant `.xpz`.
 - `.claude/hooks/genexus_validate.py` — a `PostToolUse` (Write|Edit) hook that,
   after GeneXus code is written, extracts function/method calls and warns
   (non-blocking) about any name not in `corpus/api.tsv`. It self-skips files
   under `corpus/` and files without GeneXus code signals. User-defined
   procedures/SDT/BC methods are expected to surface (they aren't built-ins), so
   the message is advisory, not a hard block.
-- Both hooks resolve the corpus location-independently so they work in-repo
+  The same hook also scans for Bantotal-style table codes
+  (`FS[A-Z]\d{3}`, e.g. `FST017`, `FSD010`) and warns (also non-blocking) about
+  any code not present in `corpus_bantotal/tables.tsv` — since that catalog is
+  derived and not exhaustive, a flagged code may be a real table missing from
+  it rather than an invented one.
+- Both hooks resolve the corpora location-independently so they work in-repo
   **and** installed globally, in this priority order: `$GENEXUS_CORPUS_DIR` →
-  `$CLAUDE_CONFIG_DIR`(or `~/.claude`)`/genexus/corpus` → `$CLAUDE_PROJECT_DIR/corpus`.
+  `$CLAUDE_CONFIG_DIR`(or `~/.claude`)`/genexus/corpus` → `$CLAUDE_PROJECT_DIR/corpus`
+  for GeneXus, and `$BANTOTAL_CORPUS_DIR` →
+  `$CLAUDE_CONFIG_DIR`(or `~/.claude`)`/genexus/corpus_bantotal` →
+  `$CLAUDE_PROJECT_DIR/corpus_bantotal` for Bantotal.
 - `install_global.sh` (macOS/Linux) / `install_global.ps1` (Windows, or
   double-click `install_global.bat`) — copy the hooks + corpus to
   `~/.claude/genexus/` and merge both hooks into the **user** `settings.json` so
@@ -84,6 +142,12 @@ clean, citable, retrieval-friendly corpus.
 - **Find an article:** grep `corpus/articles/` or `corpus/INDEX.md`; each filename
   is prefixed with its wiki id.
 - **Validate the JSONL:** `python3 -c "import json;[json.loads(l) for l in open('corpus/genexus_corpus.jsonl')]"`
+- **Rebuild the Bantotal corpus:** `python3 build_bantotal_corpus.py` (reads
+  `bantotal_sources/`, overwrites `corpus_bantotal/{tables,families}.tsv` and
+  `nine_fields.md`; leaves `xpz_objects.tsv` alone).
+- **Catalog real KB objects:** drop `.xpz` exports into
+  `corpus_bantotal/bantotal_xpz/`, then `python3 scan_bantotal_xpz.py`
+  (regenerates `corpus_bantotal/xpz_objects.tsv`).
 
 ## How the build works
 
@@ -98,10 +162,28 @@ files (`index.tsv`, `api.tsv`, `properties.tsv`, `events.tsv`, `datatypes.tsv`)
 properties (the latter via the tagged link/cell signal). Re-running fully
 regenerates `corpus/`.
 
+`build_bantotal_corpus.py` parses `bantotal_sources/Analisis_Modelo_Datos_Bantotal.md`
+for table rows (`| **CODE** | name | note |`), keeps the first occurrence per
+code, and tags each with a `family` from the fixed prefix taxonomy (FST, FSD,
+FSR, FSE, FSH, FSX, FSA, FSI, FSM, FSN). It does **not** parse the PDF itself —
+the PDF is carried as the citable primary source, not as build input.
+`scan_bantotal_xpz.py` parses `.xpz` (zipped GeneXus KB export XML) directly:
+object GUIDs → type names, `Transaction_Structure`/`SDT_Structure` parts →
+attribute/item names, `Variables` parts → variable names.
+
 ## Conventions
 
 - **Preserve provenance.** Every article keeps its `source_url`. Anti-hallucination
   is the whole point: a GeneXus claim should be traceable to a `source_id`/`source_url`.
 - **Don't hand-edit generated files.** Change `build_corpus.py` and regenerate
   so `genexus_documentation.md`, the `.md` articles, and the JSONL stay consistent.
-- **Scope is GeneXus 18.** Don't generalize the corpus to other versions.
+  Same for `corpus_bantotal/`: change `build_bantotal_corpus.py` /
+  `scan_bantotal_xpz.py`, not the generated `.tsv`/`.md` files.
+- **Scope is GeneXus 18.** Don't generalize the `corpus/` corpus to other
+  versions.
+- **Bantotal catalog is derived, not exhaustive.** `corpus_bantotal/tables.tsv`
+  says a table exists and roughly what it's for; it is not proof a table is
+  *absent* if missing, and it does not give exact field structure — that
+  requires reading `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` directly.
+  `corpus_bantotal/xpz_objects.tsv` (from real `.xpz`) is higher-confidence
+  than `tables.tsv` (from a secondary written analysis) whenever both apply.

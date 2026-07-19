@@ -1,16 +1,19 @@
 #!/usr/bin/env bash
 #
-# Instala el grounding anti-alucinacion de GeneXus 18 de forma GLOBAL, para que
-# los hooks corran en TODOS tus proyectos de Claude Code (no solo en este repo).
+# Instala el grounding anti-alucinacion de GeneXus 18 (y Bantotal, si esta
+# presente) de forma GLOBAL, para que los hooks corran en TODOS tus proyectos
+# de Claude Code (no solo en este repo).
 #
 # Que hace:
-#   1. Copia los hooks y el corpus a  ~/.claude/genexus/
+#   1. Copia los hooks y el corpus GeneXus a  ~/.claude/genexus/
+#      y, si existe, tambien corpus_bantotal/ (Bantotal es opcional)
 #   2. Registra ambos hooks en tu settings de USUARIO  ~/.claude/settings.json
 #      (UserPromptSubmit -> grounding ; PostToolUse Write|Edit -> validador),
 #      fusionando sin pisar lo que ya tengas.
 #
-# Los hooks resuelven el corpus en este orden:
-#   $GENEXUS_CORPUS_DIR  ->  ~/.claude/genexus/corpus  ->  <proyecto>/corpus
+# Los hooks resuelven cada corpus en este orden:
+#   $GENEXUS_CORPUS_DIR   -> ~/.claude/genexus/corpus          -> <proyecto>/corpus
+#   $BANTOTAL_CORPUS_DIR  -> ~/.claude/genexus/corpus_bantotal -> <proyecto>/corpus_bantotal
 # asi que tras instalar funcionan en cualquier carpeta.
 #
 # Uso:   ./install_global.sh         (instala/actualiza)
@@ -37,9 +40,17 @@ if [ ! -f "$SRC_DIR/corpus/api.tsv" ]; then
   exit 1
 fi
 
+HAS_BANTOTAL=0
+[ -f "$SRC_DIR/corpus_bantotal/tables.tsv" ] && HAS_BANTOTAL=1
+
 if [ "$DRY_RUN" = "1" ]; then
   echo "[dry-run] Copiaria hooks -> $DEST/hooks/"
   echo "[dry-run] Copiaria corpus -> $DEST/corpus/"
+  if [ "$HAS_BANTOTAL" = "1" ]; then
+    echo "[dry-run] Copiaria corpus_bantotal -> $DEST/corpus_bantotal/"
+  else
+    echo "[dry-run] corpus_bantotal/ no encontrado, se omite (opcional)"
+  fi
   echo "[dry-run] Fusionaria 2 hooks en $SETTINGS"
   exit 0
 fi
@@ -52,6 +63,15 @@ chmod +x "$DEST/hooks/"*.py
 # corpus completo (catalogos .tsv, indices y articulos para poder leerlos)
 cp -R "$SRC_DIR/corpus/." "$DEST/corpus/"
 echo "Copiados hooks y corpus a $DEST"
+
+# 1b) corpus Bantotal, si esta presente (opcional; no todo proyecto lo tiene)
+if [ "$HAS_BANTOTAL" = "1" ]; then
+  mkdir -p "$DEST/corpus_bantotal"
+  cp -R "$SRC_DIR/corpus_bantotal/." "$DEST/corpus_bantotal/"
+  echo "Copiado corpus_bantotal a $DEST/corpus_bantotal"
+else
+  echo "corpus_bantotal/ no encontrado en $SRC_DIR, se omite (opcional)"
+fi
 
 # 2) fusionar hooks en ~/.claude/settings.json (preservando lo existente)
 G_CMD="python3 \"$DEST/hooks/genexus_grounding.py\" || true"
