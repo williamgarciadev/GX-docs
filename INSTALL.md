@@ -6,16 +6,19 @@ Code, instálalos en tu configuración de **usuario**.
 
 Qué hace el instalador:
 
-1. Copia los hooks y el corpus a `~/.claude/genexus/` (en Windows
-   `%USERPROFILE%\.claude\genexus\`).
+1. Copia los hooks y el corpus GeneXus a `~/.claude/genexus/` (en Windows
+   `%USERPROFILE%\.claude\genexus\`); si el repo tiene `corpus_bantotal/`
+   (catálogo Bantotal), también lo copia — es opcional, no bloquea la
+   instalación si no está.
 2. Registra ambos hooks en tu `~/.claude/settings.json` (settings de usuario =
    todos los proyectos), **fusionando** sin pisar lo que ya tengas.
 
-Los hooks resuelven el corpus en este orden, así que tras instalar funcionan
+Los hooks resuelven cada corpus en este orden, así que tras instalar funcionan
 desde cualquier carpeta:
 
 ```
-$GENEXUS_CORPUS_DIR  ->  ~/.claude/genexus/corpus  ->  <proyecto>/corpus
+$GENEXUS_CORPUS_DIR   ->  ~/.claude/genexus/corpus           ->  <proyecto>/corpus
+$BANTOTAL_CORPUS_DIR  ->  ~/.claude/genexus/corpus_bantotal  ->  <proyecto>/corpus_bantotal
 ```
 
 > Requisito: Python 3 en el PATH. Los instaladores son **idempotentes**:
@@ -112,6 +115,13 @@ instalador para copiar los catálogos nuevos a la ubicación global:
 
 ```bash
 python3 build_corpus.py && ./install_global.sh     # (o ./install_global.ps1 en Windows)
+```
+
+Igual si regeneras el corpus Bantotal (`python3 build_bantotal_corpus.py` y/o
+`python3 scan_bantotal_xpz.py` tras agregar `.xpz`):
+
+```bash
+python3 build_bantotal_corpus.py && python3 scan_bantotal_xpz.py && ./install_global.sh
 ```
 
 ## Desinstalar

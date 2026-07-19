@@ -1,0 +1,10 @@
+FST	Tablas Basicas	Parametros y configuraciones del sistema
+FSD	Datos	Informacion transaccional y operativa
+FSR	Relaciones	Vinculos y asociaciones entre entidades
+FSE	Extensiones	Datos adicionales y especializados
+FSH	Historicos	Registros de auditoria y cambios
+FSX	Textos	Descripciones y comentarios
+FSA	Auxiliares	Tablas de apoyo y temporales
+FSI	Informaciones	Reportes y vistas de consulta
+FSM	Menues	Interfaces de usuario y navegacion
+FSN	Numeradores	Secuencias automaticas y contadores

@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """
-Hook UserPromptSubmit: ancla (grounding) las respuestas sobre GeneXus en el
-corpus local (corpus/) para que el agente NO invente funciones, metodos o
-comandos que GeneXus no tiene.
+Hook UserPromptSubmit: ancla (grounding) las respuestas sobre GeneXus y
+Bantotal en los corpus locales (corpus/, corpus_bantotal/) para que el agente
+NO invente funciones, metodos, comandos, tablas ni campos que no existan.
 
 Cuando el prompt parece pedir codigo/ayuda GeneXus, este hook:
   1. busca en corpus/index.tsv los articulos cuyos titulos mejor coinciden
   2. inyecta (additionalContext) una directiva estricta + la lista de
      articulos relevantes (titulo, ruta local y source_url) que el agente
      debe leer y citar antes de responder.
+
+Cuando el prompt parece referirse a Bantotal (core bancario sobre GeneXus),
+ademas inyecta una seccion equivalente basada en corpus_bantotal/ (tablas,
+patron de 9 campos, objetos reales escaneados de .xpz).
 
 No requiere dependencias externas (solo stdlib). Es de solo lectura.
 """
@@ -29,6 +33,15 @@ TRIGGERS = {
     "atributo", "attribute", "do case", "do while", "parm", "udp", "&",
     "panel object", "knowledge base", "gam", "data type",
 }
+
+# Senales de que el prompt es sobre Bantotal (core bancario sobre GeneXus).
+BANTOTAL_TRIGGERS = {
+    "bantotal", "core bancario", "9 campos", "nueve campos", "gik",
+    "fst", "fsd", "fsr", "fsh", "fsn", "fse", "fsx", "fsa", "fsi", "fsm",
+    "pgcod", "sucursal", "prestamo", "prestamos", "cronograma",
+}
+# Codigo de tabla Bantotal suelto en el prompt (p.ej. "FST017", "fsd010").
+bantotal_table_code_re = re.compile(r"\b(fs[a-z]\d{3})\b", re.IGNORECASE)
 
 # Palabras a ignorar al puntuar coincidencias de titulo (ruido o demasiado
 # comunes en el corpus, como "genexus", que apareceria en cientos de titulos).
@@ -99,6 +112,51 @@ def corpus_dir():
     return os.path.join(project_dir(), "corpus")
 
 
+def bantotal_dir():
+    """Resuelve corpus_bantotal/, mismo esquema de prioridad que corpus_dir():
+      1. $BANTOTAL_CORPUS_DIR  (override explicito)
+      2. ~/.claude/genexus/corpus_bantotal  (instalacion global del usuario)
+      3. $CLAUDE_PROJECT_DIR/corpus_bantotal  (este proyecto)
+    """
+    env = os.environ.get("BANTOTAL_CORPUS_DIR")
+    if env and os.path.isdir(env):
+        return env
+    cfg = os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude")
+    glob = os.path.join(cfg, "genexus", "corpus_bantotal")
+    if os.path.isdir(glob):
+        return glob
+    return os.path.join(project_dir(), "corpus_bantotal")
+
+
+def load_tables(path):
+    """Catalogo de tablas Bantotal: lista de (code, name, family, note, source)."""
+    rows = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 5:
+                    rows.append(parts)
+    except OSError:
+        pass
+    return rows
+
+
+def load_xpz_objects(path):
+    """Catalogo de objetos reales escaneados de .xpz: (name, type, module,
+    fields, source_xpz)."""
+    rows = []
+    try:
+        with open(path, encoding="utf-8") as f:
+            for line in f:
+                parts = line.rstrip("\n").split("\t")
+                if len(parts) == 5:
+                    rows.append(parts)
+    except OSError:
+        pass
+    return rows
+
+
 def load_index(path):
     rows = []
     try:
@@ -140,18 +198,57 @@ def load_props(path):
     return props
 
 
-def main():
-    try:
-        data = json.load(sys.stdin)
-    except (json.JSONDecodeError, ValueError):
-        return  # sin salida -> no se inyecta nada
-    prompt = data.get("prompt", "") or ""
-    np = norm(prompt)
+def matches(q, ttoks):
+    # coincidencia exacta, o raiz comun de 5 chars (stemming ligero:
+    # "validate"~"validation"~"validationtype"). Evita falsos positivos
+    # por subcadena como "date" dentro de "validate".
+    for tt in ttoks:
+        if q == tt:
+            return True
+        if len(q) >= 5 and len(tt) >= 5 and q[:5] == tt[:5]:
+            return True
+    return False
 
-    # Solo actuar si el prompt huele a GeneXus.
-    if not any(t in np for t in TRIGGERS):
-        return
 
+def rank_multiword(catalog, qtokens, limit=10):
+    # Ranking para catalogos de nombres multipalabra. Se puntua con
+    # frecuencia inversa para que un token-comodin (p. ej. "attribute", que
+    # matchea cientos de propiedades) pese mucho menos que uno especifico
+    # (p. ej. "length"), y el nombre pertinente quede arriba.
+    if not qtokens or not catalog:
+        return []
+    toks = [(name, url, set(tokens(name))) for name, url in catalog]
+    df = {q: sum(1 for _n, _u, nt in toks if matches(q, nt)) for q in qtokens}
+    scored = []
+    for name, url, ntoks in toks:
+        hit = [q for q in qtokens if df[q] and matches(q, ntoks)]
+        if hit:
+            score = sum(1.0 / df[q] for q in hit)
+            scored.append((score, len(name), name, url))
+    scored.sort(key=lambda r: (-r[0], r[1]))
+    return [(n, u) for _s, _l, n, u in scored[:limit]]
+
+
+def rank_articles(rows, qtokens, limit=MAX_ARTICLES):
+    # rows: lista de (art_id, title, rel, url) desde un index.tsv (id numerico
+    # como string). Puntua por coincidencia de tokens del titulo, igual que la
+    # busqueda de articulos GeneXus; se reutiliza para corpus_bantotal/index.tsv.
+    if not qtokens or not rows:
+        return []
+    scored = []
+    for art_id, title, rel, url in rows:
+        ttoks = set(tokens(title))
+        hits = [q for q in qtokens if matches(q, ttoks)]
+        if hits:
+            # peso: nº de coincidencias + bonus por tokens largos;
+            # se penaliza un titulo muy largo (menos especifico)
+            score = sum(1 + (len(w) >= 5) for w in hits) - 0.02 * len(ttoks)
+            scored.append((score, art_id, title, rel, url))
+    scored.sort(key=lambda r: (-r[0], int(r[1])))
+    return scored[:limit]
+
+
+def build_genexus_lines(prompt, qtokens, base_tokens):
     cdir = corpus_dir()
     corpus = lambda *p: os.path.join(cdir, *p)
     rows = load_index(corpus("index.tsv"))
@@ -160,7 +257,7 @@ def main():
     events = load_props(corpus("events.tsv"))
     datatypes = load_props(corpus("datatypes.tsv"))
     if not rows and not api:
-        return
+        return []
 
     # Etiqueta amigable para los textos: "corpus" si el corpus esta dentro del
     # proyecto actual; la ruta absoluta si es una instalacion global (asi las
@@ -168,43 +265,7 @@ def main():
     proj = os.path.abspath(project_dir())
     clabel = "corpus" if os.path.abspath(cdir).startswith(proj + os.sep) else cdir
 
-    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords.
-    # base_tokens conserva los terminos originales (para la busqueda web).
-    qtokens = set()
-    base_tokens = []
-    for t in tokens(prompt):
-        if t in STOP or len(t) < 3:
-            continue
-        if t not in base_tokens:
-            base_tokens.append(t)
-        qtokens.add(t)
-        if t in SYNONYMS:
-            qtokens.add(SYNONYMS[t])
-
-    def matches(q, ttoks):
-        # coincidencia exacta, o raiz comun de 5 chars (stemming ligero:
-        # "validate"~"validation"~"validationtype"). Evita falsos positivos
-        # por subcadena como "date" dentro de "validate".
-        for tt in ttoks:
-            if q == tt:
-                return True
-            if len(q) >= 5 and len(tt) >= 5 and q[:5] == tt[:5]:
-                return True
-        return False
-
-    scored = []
-    if qtokens:
-        for art_id, title, rel, url in rows:
-            ttoks = set(tokens(title))
-            hits = [q for q in qtokens if matches(q, ttoks)]
-            if hits:
-                # peso: nº de coincidencias + bonus por tokens largos;
-                # se penaliza un titulo muy largo (menos especifico)
-                score = sum(1 + (len(w) >= 5) for w in hits) - 0.02 * len(ttoks)
-                scored.append((score, art_id, title, rel, url))
-        scored.sort(key=lambda r: (-r[0], int(r[1])))
-
-    top = scored[:MAX_ARTICLES]
+    top = rank_articles(rows, qtokens)
 
     # nombres de API verificada relevantes a la consulta (match por stem)
     n_func = sum(1 for _n, k, _u in api if k == "function")
@@ -217,27 +278,9 @@ def main():
                 rel_api.append((name, kind, url))
     rel_api = rel_api[:12]
 
-    # Ranking para catalogos de nombres multipalabra (propiedades, eventos,
-    # Data Types). Se puntua con frecuencia inversa para que un token-comodin
-    # (p. ej. "attribute", que matchea cientos de propiedades) pese mucho menos
-    # que uno especifico (p. ej. "length"), y el nombre pertinente quede arriba.
-    def rank_multiword(catalog, limit=10):
-        if not qtokens or not catalog:
-            return []
-        toks = [(name, url, set(tokens(name))) for name, url in catalog]
-        df = {q: sum(1 for _n, _u, nt in toks if matches(q, nt)) for q in qtokens}
-        scored = []
-        for name, url, ntoks in toks:
-            hit = [q for q in qtokens if df[q] and matches(q, ntoks)]
-            if hit:
-                score = sum(1.0 / df[q] for q in hit)
-                scored.append((score, len(name), name, url))
-        scored.sort(key=lambda r: (-r[0], r[1]))
-        return [(n, u) for _s, _l, n, u in scored[:limit]]
-
-    rel_props = rank_multiword(props, 10)
-    rel_events = rank_multiword(events, 8)
-    rel_dts = rank_multiword(datatypes, 8)
+    rel_props = rank_multiword(props, qtokens, 10)
+    rel_events = rank_multiword(events, qtokens, 8)
+    rel_dts = rank_multiword(datatypes, qtokens, 8)
 
     lines = [
         "## GROUNDING GeneXus (anti-alucinacion)",
@@ -335,6 +378,191 @@ def main():
             "La REGLA DURA sigue vigente: solo usa nombres verificables en el",
             "corpus local O en wiki.genexus.com.",
         ]
+
+    return lines
+
+
+def build_bantotal_lines(prompt, qtokens, base_tokens):
+    bdir = bantotal_dir()
+    bt = lambda *p: os.path.join(bdir, *p)
+    bt_tables = load_tables(bt("tables.tsv"))
+    xpz_objs = load_xpz_objects(bt("xpz_objects.tsv"))
+    bt_index = load_index(bt("index.tsv"))
+    if not bt_tables and not xpz_objs and not bt_index:
+        return []
+
+    proj = os.path.abspath(project_dir())
+    blabel = "corpus_bantotal" if os.path.abspath(bdir).startswith(proj + os.sep) else bdir
+
+    # codigos de tabla explicitos en el prompt (p.ej. "FST017"), sin importar
+    # mayus/minus ni tokenizacion previa.
+    explicit_codes = {m.group(1).upper() for m in bantotal_table_code_re.finditer(prompt)}
+
+    # tablas relevantes: match directo de codigo, o por tokens del nombre/nota
+    rel_tables = []
+    for code, name, family, note, source in bt_tables:
+        if code in explicit_codes:
+            rel_tables.append((code, name, family, note, source))
+            continue
+        if qtokens:
+            ttoks = set(tokens(name)) | set(tokens(note))
+            if any(matches(q, ttoks) for q in qtokens):
+                rel_tables.append((code, name, family, note, source))
+    rel_tables = rel_tables[:15]
+
+    # objetos xpz relevantes: match por nombre de objeto o por campo/variable
+    rel_xpz = []
+    for name, type_name, module, fields, source_xpz in xpz_objs:
+        ntoks = set(tokens(name))
+        ftoks = set(tokens(fields.replace(";", " ")))
+        if norm(name) in explicit_codes or (qtokens and (
+            any(matches(q, ntoks) for q in qtokens)
+            or any(matches(q, ftoks) for q in qtokens)
+        )):
+            rel_xpz.append((name, type_name, module, fields, source_xpz))
+    rel_xpz = rel_xpz[:10]
+
+    top_articles = rank_articles(bt_index, qtokens, limit=8)
+
+    lines = [
+        "## GROUNDING Bantotal (anti-alucinacion)",
+        "",
+        f"Tienes disponible el corpus Bantotal en `{blabel}/` (core bancario",
+        "construido sobre GeneXus). A diferencia de GeneXus, NO hay wiki publico:",
+        "las fuentes son un manual propietario y, si existen, tus propios .xpz.",
+        "",
+        "1. NO inventes nombres de tabla (FST/FSD/FSR/FSH/FSN...), campos ni",
+        "   objetos de KB que no aparezcan en el corpus.",
+        "2. REGLA DURA:",
+        f"     - tablas   -> `{blabel}/tables.tsv` ({len(bt_tables)} tablas; "
+        "catalogo DERIVADO del manual, no exhaustivo)",
+        f"     - objetos reales de tu KB -> `{blabel}/xpz_objects.tsv` "
+        f"({len(xpz_objs)} objetos; MAYOR confianza, viene de .xpz reales)",
+        "3. Si un nombre de tabla/campo NO esta en ninguno de los dos, dilo",
+        "   explicitamente y sugiere verificar contra",
+        f"   `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` (fuente primaria) en vez",
+        "   de inventarlo.",
+        "4. El 'patron de 9 campos' de Bantotal NO tiene una definicion unica",
+        f"   confirmada: `{blabel}/nine_fields.md` documenta una version, pero",
+        "   pueden existir articulos ingeridos (ver mas abajo) con OTRA version",
+        "   en conflicto (nombres de campo distintos). Si respondes sobre esto,",
+        "   dilo explicitamente en vez de asumir que una sola version es 'la",
+        "   correcta'; confirma contra la tabla puntual en el PDF si importa.",
+    ]
+
+    if rel_tables:
+        lines += [
+            "",
+            "Tablas del catalogo que podrian aplicar (codigo | nombre | familia | "
+            "fuente):",
+            "",
+        ]
+        for code, name, family, note, source in rel_tables:
+            lines.append(f"- {code} | {name} | {family} | {source}")
+
+    if rel_xpz:
+        lines += [
+            "",
+            "Objetos REALES de tu KB (escaneados de .xpz) que podrian aplicar",
+            "(nombre | tipo | modulo | fuente):",
+            "",
+        ]
+        for name, type_name, module, fields, source_xpz in rel_xpz:
+            lines.append(f"- {name} | {type_name} | {module} | {source_xpz}")
+    elif not xpz_objs:
+        lines += [
+            "",
+            f"Nota: `{blabel}/xpz_objects.tsv` esta vacio (sin .xpz agregados aun).",
+            f"Si el usuario tiene exports de su KB, sugierele agregarlos en",
+            f"`{blabel}/bantotal_xpz/` y correr `python3 scan_bantotal_xpz.py` para",
+            "catalogar nombres reales de campos/objetos con maxima confianza.",
+        ]
+
+    if top_articles:
+        lines += [
+            "",
+            "Articulos adicionales (ingeridos con ingest_docs.py) que podrian",
+            "aplicar (leelos antes de responder):",
+            "",
+        ]
+        for _score, art_id, title, rel, url in top_articles:
+            lines.append(f"- {title} -> `{blabel}/{rel}`  ({url})")
+
+    if not rel_tables and not rel_xpz and not top_articles:
+        lines += [
+            "",
+            "### Sin coincidencia en el corpus Bantotal local",
+            "",
+            "No hubo coincidencia en tables.tsv, xpz_objects.tsv ni index.tsv. No",
+            "inventes el nombre: dilo explicitamente y verifica contra",
+            "`bantotal_sources/MDU-99000-GL-V3R1.11.pdf` o pide al usuario el .xpz",
+            "correspondiente antes de responder con nombres de tabla/campo.",
+        ]
+
+    return lines
+
+
+def bantotal_dynamic_vocab():
+    """Vocabulario dinamico de Bantotal: palabras significativas de los
+    titulos ya ingeridos (index.tsv) y de tables.tsv (nombre/nota), para
+    detectar prompts sobre temas reales del corpus (p.ej. "ACH", "garantias",
+    "CDT") que no estan en la lista fija BANTOTAL_TRIGGERS. Crece solo con lo
+    que se va ingiriendo, sin mantenimiento manual. Los archivos son chicos
+    (catalogo Bantotal, no el corpus GeneXus completo); costo despreciable."""
+    bdir = bantotal_dir()
+    bt = lambda *p: os.path.join(bdir, *p)
+    vocab = set()
+    for _id, title, _rel, _url in load_index(bt("index.tsv")):
+        vocab |= set(tokens(title))
+    for _code, name, _family, note, _source in load_tables(bt("tables.tsv")):
+        vocab |= set(tokens(name)) | set(tokens(note))
+    return {w for w in vocab if len(w) >= 3 and w not in STOP}
+
+
+def main():
+    try:
+        data = json.load(sys.stdin)
+    except (json.JSONDecodeError, ValueError):
+        return  # sin salida -> no se inyecta nada
+    prompt = data.get("prompt", "") or ""
+    np = norm(prompt)
+
+    # tokens de la consulta (+ sinonimos ES->EN), sin stopwords. Se calculan
+    # antes de decidir los triggers porque el trigger dinamico de Bantotal
+    # los necesita. base_tokens conserva los terminos originales (busqueda web).
+    qtokens = set()
+    base_tokens = []
+    for t in tokens(prompt):
+        if t in STOP or len(t) < 3:
+            continue
+        if t not in base_tokens:
+            base_tokens.append(t)
+        qtokens.add(t)
+        if t in SYNONYMS:
+            qtokens.add(SYNONYMS[t])
+
+    want_gx = any(t in np for t in TRIGGERS)
+    want_bt = any(t in np for t in BANTOTAL_TRIGGERS) or bool(
+        bantotal_table_code_re.search(prompt)
+    )
+    if not want_bt and qtokens:
+        vocab = bantotal_dynamic_vocab()
+        want_bt = any(matches(q, vocab) for q in qtokens)
+    if not want_gx and not want_bt:
+        return
+
+    lines = []
+    if want_gx:
+        lines += build_genexus_lines(prompt, qtokens, base_tokens)
+    if want_bt:
+        bt_lines = build_bantotal_lines(prompt, qtokens, base_tokens)
+        if bt_lines:
+            if lines:
+                lines.append("")
+            lines += bt_lines
+
+    if not lines:
+        return
 
     out = {
         "hookSpecificOutput": {

@@ -1,0 +1,70 @@
+FSD001	Personas	FSD	Registro maestro universal	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L649
+FSD002	Personas Físicas	FSD	Datos específicos individuos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L650
+FSD003	Personas Jurídicas	FSD	Datos específicos empresas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L651
+FSD004	Inst. Financieras	FSD	Bancos corresponsales	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L652
+FSD005	Domicilios Personas	FSD	Direcciones individuales	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L653
+FSD006	Domicilios Cuentas	FSD	Direcciones corporativas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L654
+FSD008	Cuentas	FSD	Números internos del banco	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L655
+FSD009	Grupos de Cuentas	FSD	Clasificación estratégica	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L656
+FSD010	Operaciones	FSD	Solo rubros con módulo	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1328
+FSD011	Saldos	FSD	Todos los movimientos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1327
+FSD012	Eventos	FSD	Programación futura	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1331
+FSD013	Primer Módulo	FSD	Agrupación por naturaleza (Activo, Pasivo, etc.)	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L737
+FSD014	Plan de Cuentas	FSD	Catálogo maestro de rubros contables	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L736
+FSD015	Cabezal de Asiento	FSD	Control y trazabilidad general	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1270
+FSD016	Detalle de Asiento	FSD	Movimientos contables específicos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1271
+FSD024	Tasas Genéricas por Clase	FSD	Estándar por tipo	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1095
+FSD025	Tasas por Monto	FSD	Escalas volumétricas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1096
+FSD026	Comisiones por Cuenta	FSD	Tarifas específicas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1053
+FSD027	Tasas por Cuenta	FSD	Personalización cliente	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1097
+FSD601	Operaciones a Plazo	FSD	Préstamos/Depósitos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1329
+FSD602	Eventos Plazo	FSD	Pagos de cuotas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1330
+FSE012	Documentos	FSE	Descontar/Cobrar	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1332
+FSE111	Cheques	FSE	Compensación	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1333
+FSH005	Cotizaciones Diarias	FSH	Histórico dinámico automático	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L973
+FSH013	Por Rubro	FSH	Diaria	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1436
+FSH014	Por Operación	FSH	Diaria	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1435
+FSH015	Cabezal Movimientos	FSH	Diaria	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1438
+FSH016	Detalle Movimientos	FSH	Diaria	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1439
+FSH017	Estadísticas	FSH	Mensual	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1440
+FSH031	Saldos Diarios	FSH	Diaria	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1437
+FSN001	Automática	FSN	Numerador de operaciones	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L227
+FSN002	Automática	FSN	Numerador de operaciones	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L228
+FSN003	Automática	FSN	Numerador de relaciones (asientos)	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L229
+FSR002	Cónyuges	FSR	Vínculos matrimoniales	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L662
+FSR003	Integración P.Jurídica	FSR	Socios/Accionistas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L663
+FSR004	Cuentas en Inst.Financ.	FSR	Cuentas en otros bancos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L664
+FSR005	Teléfonos Personas	FSR	Contactos individuales	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L665
+FSR006	Teléfonos Cuentas	FSR	Contactos corporativos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L666
+FSR008	Integración Cuentas	FSR	Titularidad múltiple	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L667
+FSR014	Relaciones de Rubros	FSR	Vínculos automáticos entre cuentas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L738
+FSR025	Pizarra Tasas por Monto y Plazo	FSR	Matrices dinámicas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1098
+FSR026	Comisiones Genéricas	FSR	Tarifas estándar	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1052
+FSR027	Pizarra Tasas por Cuenta	FSR	Matrices personalizadas	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1099
+FSR111	Instrucciones	FSR	Automatizaciones	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1334
+FST001	Sucursales	FST	Por Empresa	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L180
+FST003	Módulos	FST	Sistema	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L186
+FST004	Tipos de Operación	FST	Por Módulo	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L187
+FST005	Monedas Maestras	FST	Configuración estática	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L972
+FST013	Países	FST	Global	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L183
+FST017	Parámetros Generales	FST	Sistema/Empresa	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L179
+FST024	Tipos de Tasas	FST	Configuración base	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1093
+FST028	Calendarios	FST	Multi-empresa/Regional	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L182
+FST029	Clases de Tasas	FST	Categorías (mora, transferencia, LIBOR)	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1094
+FST034	Cabezal de Transacción	FST	Configuración operativa global	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1148
+FST035	Ordinales	FST	Definición de campos de captura	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1149
+FST036	SubOrdinales	FST	Estructura de asientos contables	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1150
+FST037	Textos de Ordinal	FST	Ayudas contextuales	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1153
+FST040	Cálculos	FST	Lógica automática y validaciones	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1151
+FST046	Códigos de Usuarios	FST	Empresa*, Usuario*	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L840
+FST050	Tipos de Comisiones	FST	Catálogo maestro	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1051
+FST068	Localidades	FST	Por País	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L185
+FST069	Regiones	FST	Global	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L184
+FST110	Sistemas	FST	Agrupación funcional	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L188
+FST111	Módulos de Sistema	FST	Asociación	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L189
+FST146	Usuarios Ejecutivos	FST	Usuario*, Cod.Ejecutivo*, Es propietario?	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L842
+FST717	Árbol de Empresas	FST	Grupo Empresarial	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L181
+FST746	Usuarios Activos	FST	Usuario*, Nombre, Empresa actual	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L841
+FSX015	Textos de Cabezal	FSX	Descripciones del asiento completo	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1272
+FSX016	Textos de Detalle	FSX	Descripciones por movimiento	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1273
+FSX017	Textos de Transacción	FSX	Mensajes dinámicos	bantotal_sources/Analisis_Modelo_Datos_Bantotal.md:L1152
