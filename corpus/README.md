@@ -16,6 +16,17 @@ Se generan con `python3 build_corpus.py` (en la raíz del repo) a partir de
 `genexus_documentation.md`. El proceso es **idempotente**: re-ejecutarlo
 reconstruye `corpus/` por completo.
 
+### Documentos propios (`ingest_docs.py`)
+
+Además del dump del wiki, podés sumar tus propios `.md`/`.html` dejándolos en
+`extra_docs/genexus/` y corriendo `python3 ingest_docs.py genexus` (en la raíz
+del repo). Cada archivo se convierte en un artículo más (`corpus/articles/`)
+con un id sintético `>= 9000001` y se suma a `index.tsv`, pero con
+`source_url: local:extra_docs/genexus/<archivo>` en vez de una URL de
+`wiki.genexus.com` — dejá claro que es TU documento, no documentación
+oficial verificada, al citarlo. Idempotente: borrar el archivo de
+`extra_docs/` hace que su artículo desaparezca en la siguiente corrida.
+
 ## Frontmatter / esquema
 
 Cada `.md` incluye:

@@ -15,6 +15,7 @@ tus propios exports `.xpz` de KB.
 | `nine_fields.md` | El patrón arquitectónico de 9 campos base (PGCOD + 8 campos con prefijo de 2 letras) que identifican unívocamente una operación. | Derivada. |
 | `xpz_objects.tsv` | Catálogo de objetos GeneXus REALES (Transaction/Procedure/SDT/...) escaneados de tus `.xpz`: `name\ttype\tmodule\tattributes_or_vars\tsource_xpz`. Vacío hasta que agregues `.xpz`. | **Alta** (viene de tu propia KB, no de prosa). |
 | `bantotal_xpz/` | Carpeta donde vos agregás tus exports `.xpz` para que `scan_bantotal_xpz.py` los catalogue. | — |
+| `index.tsv` + `articles/` | Artículos ingeridos desde `extra_docs/bantotal/*.{md,html}` vía `python3 ingest_docs.py bantotal` (manuales adicionales, notas funcionales, etc. que vos aportes). `id\ttitle\tpath\turl`, mismo esquema que `corpus/index.tsv`. Vacío hasta que ingieras algo. | Tan confiable como el documento que ingeriste — `source_url` queda como `local:...`, no como fuente oficial. |
 
 Se generan con `python3 build_bantotal_corpus.py` (tables/families/nine_fields,
 a partir de `bantotal_sources/`) y `python3 scan_bantotal_xpz.py`
@@ -51,7 +52,8 @@ idempotentes.
   una tabla puntual.
 - **Cita la fuente.** Cada fila de `tables.tsv` trae su `source` (archivo y
   línea del análisis); cada fila de `xpz_objects.tsv` trae el `.xpz` de
-  origen.
+  origen; cada fila de `index.tsv` trae un `local:...` que apunta al
+  documento que vos ingeriste (no es fuente oficial: aclaralo si lo citás).
 
 ## Limitaciones conocidas
 

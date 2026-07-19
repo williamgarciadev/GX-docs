@@ -229,6 +229,25 @@ def rank_multiword(catalog, qtokens, limit=10):
     return [(n, u) for _s, _l, n, u in scored[:limit]]
 
 
+def rank_articles(rows, qtokens, limit=MAX_ARTICLES):
+    # rows: lista de (art_id, title, rel, url) desde un index.tsv (id numerico
+    # como string). Puntua por coincidencia de tokens del titulo, igual que la
+    # busqueda de articulos GeneXus; se reutiliza para corpus_bantotal/index.tsv.
+    if not qtokens or not rows:
+        return []
+    scored = []
+    for art_id, title, rel, url in rows:
+        ttoks = set(tokens(title))
+        hits = [q for q in qtokens if matches(q, ttoks)]
+        if hits:
+            # peso: nº de coincidencias + bonus por tokens largos;
+            # se penaliza un titulo muy largo (menos especifico)
+            score = sum(1 + (len(w) >= 5) for w in hits) - 0.02 * len(ttoks)
+            scored.append((score, art_id, title, rel, url))
+    scored.sort(key=lambda r: (-r[0], int(r[1])))
+    return scored[:limit]
+
+
 def build_genexus_lines(prompt, qtokens, base_tokens):
     cdir = corpus_dir()
     corpus = lambda *p: os.path.join(cdir, *p)
@@ -246,19 +265,7 @@ def build_genexus_lines(prompt, qtokens, base_tokens):
     proj = os.path.abspath(project_dir())
     clabel = "corpus" if os.path.abspath(cdir).startswith(proj + os.sep) else cdir
 
-    scored = []
-    if qtokens:
-        for art_id, title, rel, url in rows:
-            ttoks = set(tokens(title))
-            hits = [q for q in qtokens if matches(q, ttoks)]
-            if hits:
-                # peso: nº de coincidencias + bonus por tokens largos;
-                # se penaliza un titulo muy largo (menos especifico)
-                score = sum(1 + (len(w) >= 5) for w in hits) - 0.02 * len(ttoks)
-                scored.append((score, art_id, title, rel, url))
-        scored.sort(key=lambda r: (-r[0], int(r[1])))
-
-    top = scored[:MAX_ARTICLES]
+    top = rank_articles(rows, qtokens)
 
     # nombres de API verificada relevantes a la consulta (match por stem)
     n_func = sum(1 for _n, k, _u in api if k == "function")
@@ -380,7 +387,8 @@ def build_bantotal_lines(prompt, qtokens, base_tokens):
     bt = lambda *p: os.path.join(bdir, *p)
     bt_tables = load_tables(bt("tables.tsv"))
     xpz_objs = load_xpz_objects(bt("xpz_objects.tsv"))
-    if not bt_tables and not xpz_objs:
+    bt_index = load_index(bt("index.tsv"))
+    if not bt_tables and not xpz_objs and not bt_index:
         return []
 
     proj = os.path.abspath(project_dir())
@@ -413,6 +421,8 @@ def build_bantotal_lines(prompt, qtokens, base_tokens):
         )):
             rel_xpz.append((name, type_name, module, fields, source_xpz))
     rel_xpz = rel_xpz[:10]
+
+    top_articles = rank_articles(bt_index, qtokens, limit=8)
 
     lines = [
         "## GROUNDING Bantotal (anti-alucinacion)",
@@ -466,13 +476,23 @@ def build_bantotal_lines(prompt, qtokens, base_tokens):
             "catalogar nombres reales de campos/objetos con maxima confianza.",
         ]
 
-    if not rel_tables and not rel_xpz:
+    if top_articles:
+        lines += [
+            "",
+            "Articulos adicionales (ingeridos con ingest_docs.py) que podrian",
+            "aplicar (leelos antes de responder):",
+            "",
+        ]
+        for _score, art_id, title, rel, url in top_articles:
+            lines.append(f"- {title} -> `{blabel}/{rel}`  ({url})")
+
+    if not rel_tables and not rel_xpz and not top_articles:
         lines += [
             "",
             "### Sin coincidencia en el corpus Bantotal local",
             "",
-            "No hubo coincidencia en tables.tsv ni xpz_objects.tsv. No inventes el",
-            "nombre: dilo explicitamente y verifica contra",
+            "No hubo coincidencia en tables.tsv, xpz_objects.tsv ni index.tsv. No",
+            "inventes el nombre: dilo explicitamente y verifica contra",
             "`bantotal_sources/MDU-99000-GL-V3R1.11.pdf` o pide al usuario el .xpz",
             "correspondiente antes de responder con nombres de tabla/campo.",
         ]

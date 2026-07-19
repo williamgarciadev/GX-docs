@@ -1,0 +1,6 @@
+Deja aqui tus archivos .md o .html adicionales de Bantotal (manuales de otros
+modulos, notas funcionales, etc.) y corre:
+    python3 ingest_docs.py bantotal
+para sumarlos como articulos citables en corpus_bantotal/articles/ (indexados
+en corpus_bantotal/index.tsv). El source_url quedara como "local:...": son tus
+documentos, no el manual oficial MDU-99000.

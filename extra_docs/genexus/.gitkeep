@@ -1,0 +1,5 @@
+Deja aqui tus archivos .md o .html adicionales de GeneXus y corre:
+    python3 ingest_docs.py genexus
+para sumarlos como articulos citables en corpus/articles/ (indexados en
+corpus/index.tsv). El source_url quedara como "local:...", NO como una URL
+real de wiki.genexus.com: son tus documentos, no documentacion oficial.

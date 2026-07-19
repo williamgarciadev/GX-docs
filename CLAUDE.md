@@ -88,8 +88,25 @@ below for how it differs from the GeneXus corpus and its confidence levels.
     `.xpz` files into `corpus_bantotal/bantotal_xpz/` and runs
     `scan_bantotal_xpz.py`.
   - `corpus_bantotal/bantotal_xpz/` — drop `.xpz` KB exports here.
+  - `corpus_bantotal/index.tsv` + `corpus_bantotal/articles/` — articles
+    ingested via `ingest_docs.py bantotal` from `extra_docs/bantotal/`
+    (same `id\ttitle\tpath\turl` shape as `corpus/index.tsv`, empty until you
+    ingest something).
   - `corpus_bantotal/README.md` — schema, confidence levels, and grounding
     usage rules for the Bantotal corpus.
+- `extra_docs/genexus/`, `extra_docs/bantotal/` — drop-in folders for your own
+  `.md`/`.html` documents (notes, extra manuals, anything not already covered).
+  `python3 ingest_docs.py [genexus|bantotal]` converts each file into a
+  citable article (`corpus/articles/9000001-....md` or
+  `corpus_bantotal/articles/9000001-....md`, synthetic ids starting at
+  `9000001` so they never collide with real wiki ids) and rebuilds the
+  matching `index.tsv`. Their `source_url` is `local:extra_docs/<target>/<file>`
+  — **not** a wiki.genexus.com URL — so the grounding hook and the agent never
+  cite them as if they were official documentation. Idempotent: delete a file
+  from `extra_docs/` and its generated article disappears on the next run.
+- `ingest_docs.py` — the ingestion script above. HTML is converted to plain
+  markdown-ish text with a small stdlib-only `html.parser` based converter (no
+  external deps); `.md` files are used as-is.
 - `INDICE_MAESTRO_GENEXUS.md` — a hand-curated learning index. Note: it
   references standalone topic files (`Variables.md`, `database-best-practices.md`,
   etc.) that are **not** in the repo — treat it as an aspirational map, not a file listing.
@@ -108,10 +125,12 @@ below for how it differs from the GeneXus corpus and its confidence levels.
   The same hook also detects Bantotal-related prompts (keywords like
   "bantotal", "9 campos", or a bare table code like `FST017`) independently
   of the GeneXus triggers, and injects an equivalent directive sourced from
-  `corpus_bantotal/tables.tsv` and `xpz_objects.tsv` — with no web fallback,
-  since there's no public wiki; the fallback there is to say so explicitly
-  and point at `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` or ask the user
-  for the relevant `.xpz`.
+  `corpus_bantotal/tables.tsv`, `xpz_objects.tsv`, and `index.tsv` (articles
+  ingested via `ingest_docs.py`) — with no web fallback, since there's no
+  public wiki; the fallback there is to say so explicitly and point at
+  `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` or ask the user for the
+  relevant `.xpz`. Article ranking (`rank_articles`) is shared between the
+  GeneXus and Bantotal sections.
 - `.claude/hooks/genexus_validate.py` — a `PostToolUse` (Write|Edit) hook that,
   after GeneXus code is written, extracts function/method calls and warns
   (non-blocking) about any name not in `corpus/api.tsv`. It self-skips files
@@ -148,6 +167,9 @@ below for how it differs from the GeneXus corpus and its confidence levels.
 - **Catalog real KB objects:** drop `.xpz` exports into
   `corpus_bantotal/bantotal_xpz/`, then `python3 scan_bantotal_xpz.py`
   (regenerates `corpus_bantotal/xpz_objects.tsv`).
+- **Ingest your own `.md`/`.html` docs:** drop files into
+  `extra_docs/genexus/` and/or `extra_docs/bantotal/`, then
+  `python3 ingest_docs.py` (or `... genexus` / `... bantotal` for just one).
 
 ## How the build works
 
