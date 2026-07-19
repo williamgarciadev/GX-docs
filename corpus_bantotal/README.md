@@ -66,6 +66,13 @@ idempotentes.
   explícitamente en vez de elegir una versión al azar; verificá contra
   `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` para la tabla puntual que te
   importe.
+- **✏️ PGCOD = Empresa, no País.** El análisis derivado original describía
+  `PGCOD` como "código de país"; el dueño del corpus lo corrigió (confirmado
+  en uso real, consistente con `RRg0003`/`&Ppgcod` = "empresa en la que se
+  trabaja"): Bantotal es multiempresa, y `PGCOD` particiona por
+  empresa/entidad operativa, no necesariamente por país. La corrección está
+  aplicada en `bantotal_sources/Patron_9_Campos_Bantotal.md` (fuente) y
+  propagada a `nine_fields.md` al reconstruir.
 - **Cita la fuente.** Cada fila de `tables.tsv` trae su `source` (archivo y
   línea del análisis); cada fila de `xpz_objects.tsv` trae el `.xpz` de
   origen; cada fila de `index.tsv` trae un `local:...` que apunta al

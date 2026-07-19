@@ -14,6 +14,16 @@
 > verificar contra `bantotal_sources/MDU-99000-GL-V3R1.11.pdf` para la
 > tabla puntual que te interese.
 
+> **✏️ CORRECCIÓN (dueño del corpus, confirmado en uso real)**: **PGCOD
+> representa "Empresa", NO "País"** como decía el análisis original de este
+> documento (ya corregido más abajo). Bantotal es multiempresa (no
+> necesariamente multipaís): el campo particiona por empresa/entidad
+> operativa. Esto es consistente con `RRg0003` (ver artículo ingerido
+> "Préstamos en Bantotal — Rutinas... — RRg0003"), donde `&Ppgcod` se
+> describe como "empresa en la que se trabaja". Si en otro lado del corpus
+> ves "PGCOD = país", es el error original sin corregir — prevalece esta
+> nota.
+
 ## 🎯 Descubrimiento del Patrón
 
 Tienes razón al identificar este patrón fundamental. En Bantotal existe una **estructura consistente de 9 campos base** que se repite en todas las tablas transaccionales, solo cambiando los **prefijos de 2 letras** según el contexto de la tabla.
@@ -28,7 +38,7 @@ Tienes razón al identificar este patrón fundamental. En Bantotal existe una **
 
 | #  | Campo Base | Tipo  | Descripción | Ejemplos de Prefijos |
 |----|------------|--------|-------------|---------------------|
-| 1  | **PGCOD**  | N(3)  | Código de país | Siempre igual |
+| 1  | **PGCOD**  | N(3)  | Código de empresa (corregido; ver nota arriba) | Siempre igual |
 | 2  | **XXMOD**  | N(3)  | Módulo | AOMOD, PPMOD |
 | 3  | **XXSUC**  | N(3)  | Sucursal | AOSUC, PPSUC |
 | 4  | **XXMDA**  | N(4)  | Moneda | AOMDA, PPMDA |
@@ -42,7 +52,7 @@ Tienes razón al identificar este patrón fundamental. En Bantotal existe una **
 
 ### FSD010 - Operaciones de Préstamo (Prefijo: AO)
 ```
-*PGCOD    N(3)     ← Campo 1: País (siempre igual)
+*PGCOD    N(3)     ← Campo 1: Empresa (siempre igual, corregido)
 *AOMOD    N(3)     ← Campo 2: Módulo (prefijo AO)
 *AOSUC    N(3)     ← Campo 3: Sucursal (prefijo AO)
 *AOMDA    N(4)     ← Campo 4: Moneda (prefijo AO)
@@ -55,7 +65,7 @@ Tienes razón al identificar este patrón fundamental. En Bantotal existe una **
 
 ### FSD601 - Cronograma de Pagos (Prefijo: PP)
 ```
-*PGCOD    N(3)     ← Campo 1: País (siempre igual)
+*PGCOD    N(3)     ← Campo 1: Empresa (siempre igual, corregido)
 *PPMOD    N(3)     ← Campo 2: Módulo (prefijo PP)
 *PPSUC    N(3)     ← Campo 3: Sucursal (prefijo PP)
 *PPMDA    N(4)     ← Campo 4: Moneda (prefijo PP)
@@ -69,7 +79,7 @@ Tienes razón al identificar este patrón fundamental. En Bantotal existe una **
 
 ### FSD602 - Pagos Realizados (Prefijo: PP)
 ```
-*PGCOD    N(3)     ← Campo 1: País (siempre igual)
+*PGCOD    N(3)     ← Campo 1: Empresa (siempre igual, corregido)
 *PPMOD    N(3)     ← Campo 2: Módulo (prefijo PP)
 *PPSUC    N(3)     ← Campo 3: Sucursal (prefijo PP)
 *PPMDA    N(4)     ← Campo 4: Moneda (prefijo PP)
@@ -87,7 +97,7 @@ Tienes razón al identificar este patrón fundamental. En Bantotal existe una **
 
 Piensa en estos 9 campos como un **sistema de direcciones postal bancario**:
 
-1. **PGCOD** (País) = País
+1. **PGCOD** (Empresa) = Empresa (corregido; el análisis original decía "País")
 2. **XXMOD** (Módulo) = Estado/Provincia  
 3. **XXSUC** (Sucursal) = Ciudad
 4. **XXMDA** (Moneda) = Código postal
@@ -107,7 +117,7 @@ Cada registro en Bantotal tiene una "dirección completa" que lo ubica de manera
 - Reduce errores de diseño
 
 #### 2. **Escalabilidad Organizacional**
-- Soporte multi-país (`PGCOD`)
+- Soporte multiempresa (`PGCOD`) (corregido; el análisis original decía "multi-país")
 - Soporte multi-sucursal (`XXSUC`)
 - Soporte multi-módulo (`XXMOD`)
 - Soporte multi-moneda (`XXMDA`)
@@ -219,7 +229,7 @@ CREATE TABLE FSD{NNN} (
 
 ### 🎯 Por qué 9 Campos Base
 
-1. **Jerarquía Organizacional**: País → Módulo → Sucursal
+1. **Jerarquía Organizacional**: Empresa → Módulo → Sucursal (corregido)
 2. **Contexto Financiero**: Moneda → Papel → Cuenta
 3. **Identificación Operativa**: Operación → Sub-operación → Tipo
 
@@ -228,12 +238,12 @@ CREATE TABLE FSD{NNN} (
 El patrón de 9 campos puede parecer repetitivo, pero proporciona:
 - **Denormalización controlada** para performance
 - **Identificación global** sin necesidad de JOINs complejos
-- **Particionamiento natural** por país/sucursal/módulo
+- **Particionamiento natural** por empresa/sucursal/módulo
 
 ### 🚀 Escalabilidad
 
 Este diseño permite:
-- **Múltiples países** en una sola base de datos
+- **Múltiples empresas** en una sola base de datos (corregido; el análisis original decía "países")
 - **Operaciones distribuidas** por sucursal
 - **Segmentación por módulo** de negocio
 - **Soporte multi-moneda** nativo
